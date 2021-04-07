@@ -1,0 +1,27 @@
+from django.contrib.auth.models import AbstractBaseUser
+from django.db.models import CharField, ImageField, TextField, BooleanField
+
+from .managers import ProfileManager
+
+
+class Profile(AbstractBaseUser):
+    """Custom user model. Fields 'password, last_login are inherited from AbstractBaseUser"""
+    username = CharField(max_length=255, unique=True)
+    email = CharField(max_length=255, unique=True)
+    photo = ImageField(upload_to="images")
+    biography = TextField()
+    is_active = BooleanField(default=True)
+    is_confirmed = BooleanField(default=False)
+    is_staff = BooleanField(default=False)
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email', 'password', ]
+
+    objects = ProfileManager()
+
+    class Meta:
+        db_table = "profiles"
+
+    def __str__(self):
+        return self.username
+
