@@ -1,4 +1,5 @@
 from django.contrib.auth.models import BaseUserManager
+from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 
 
@@ -7,11 +8,13 @@ class ProfileManager(BaseUserManager):
     def create_user(self, email, username, password, **kwargs):
         if not email:
             raise ValueError("User must have an email address")
-        if not validate_email(email):
-            raise ValueError("Incorrect email address")
         if not username:
             raise ValueError("User must have an username")
         normalized_email = self.normalize_email(email)
+        try:
+            validate_email(normalized_email)
+        except ValidationError:
+            raise ValueError("Email address is incorrect")
         user = self.model(email=normalized_email, username=username, **kwargs)
         user.set_password(password)
         user.save()

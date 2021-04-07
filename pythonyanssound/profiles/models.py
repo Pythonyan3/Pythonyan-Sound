@@ -15,6 +15,7 @@ class Profile(AbstractBaseUser):
     is_staff = BooleanField(default=False)
 
     USERNAME_FIELD = 'username'
+    EMAIL_FIELD = 'email'
     REQUIRED_FIELDS = ['email', 'password', ]
 
     objects = ProfileManager()
@@ -24,4 +25,12 @@ class Profile(AbstractBaseUser):
 
     def __str__(self):
         return self.username
+
+    def has_perm(self, perm, obj=None):
+        return self.is_active
+
+    def has_module_perms(self, app_label):
+        print(app_label)
+        return True
+
 
