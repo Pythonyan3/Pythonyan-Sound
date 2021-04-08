@@ -1,5 +1,6 @@
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -100,6 +101,20 @@ AUTH_USER_MODEL = 'profiles.Profile'
 AUTHENTICATION_BACKENDS = [
     'profiles.backends.ProfileAuthBackend',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=5),
+}
 
 LANGUAGE_CODE = 'en-us'
 
