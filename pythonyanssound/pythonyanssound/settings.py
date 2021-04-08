@@ -97,9 +97,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'profiles.Profile'
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/3.2/topics/i18n/
+AUTHENTICATION_BACKENDS = [
+    'profiles.backends.ProfileAuthBackend',
+]
 
 LANGUAGE_CODE = 'en-us'
 

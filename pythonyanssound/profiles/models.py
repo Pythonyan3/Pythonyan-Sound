@@ -8,8 +8,8 @@ class Profile(AbstractBaseUser):
     """Custom user model. Fields 'password, last_login are inherited from AbstractBaseUser"""
     username = CharField(max_length=255, unique=True)
     email = CharField(max_length=255, unique=True)
-    photo = ImageField(upload_to="images")
-    biography = TextField()
+    photo = ImageField(upload_to="images", blank=True)
+    biography = TextField(blank=True)
     is_active = BooleanField(default=True)
     is_confirmed = BooleanField(default=False)
     is_staff = BooleanField(default=False)
@@ -27,10 +27,9 @@ class Profile(AbstractBaseUser):
         return self.username
 
     def has_perm(self, perm, obj=None):
-        return self.is_active
+        return self.is_staff
 
     def has_module_perms(self, app_label):
-        print(app_label)
-        return True
+        return self.is_active
 
 
