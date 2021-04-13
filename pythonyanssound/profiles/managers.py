@@ -10,6 +10,9 @@ class ProfileManager(BaseUserManager):
             raise ValueError("User must have an email address")
         if not username:
             raise ValueError("User must have an username")
+        if not password or not kwargs.get('confirm_password'):
+            raise ValueError("User must have an password")
+
         normalized_email = self.normalize_email(email)
         try:
             validate_email(normalized_email)
