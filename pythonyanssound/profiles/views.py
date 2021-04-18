@@ -3,9 +3,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.views import TokenViewBase
 
 from .models import Profile
-from .serializers import ProfileSerializer
+from .serializers import ProfileSerializer, TokenRefreshSerializer, LogoutSerializer
+from .tokens import CustomRefreshToken
 from .utils import ProfileUtil
 
 
@@ -67,3 +69,24 @@ class EmailVerificationView(APIView):
         except Profile.DoesNotExist:
             return Response({"error": "Token is invalid or expired."})
         return Response({"message": "Email verified successful."})
+
+
+class TokenRefreshView(TokenViewBase):
+    """
+    Token Refresh View with custom serializer
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = TokenRefreshSerializer
+
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = LogoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        token = serializer.validated_data
+        token.blacklist()
+
+        return Response({"message": ["Logout successful"]})

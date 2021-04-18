@@ -1,7 +1,5 @@
 from django.contrib.auth.models import AbstractBaseUser
 from django.db.models import CharField, ImageField, TextField, BooleanField
-from rest_framework_simplejwt.settings import api_settings
-from rest_framework_simplejwt.tokens import BlacklistMixin, Token
 
 from .managers import ProfileManager
 
@@ -34,8 +32,3 @@ class Profile(AbstractBaseUser):
 
     def has_module_perms(self, app_label):
         return self.is_active
-
-
-class VerifyToken(BlacklistMixin, Token):
-    token_type = 'verify'
-    lifetime = api_settings.ACCESS_TOKEN_LIFETIME

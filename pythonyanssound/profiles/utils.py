@@ -2,8 +2,9 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import EmailMessage
 from django.urls import reverse
 
-from .models import VerifyToken, Profile
+from .models import Profile
 from .serializers import ProfileCreateSerializer
+from .tokens import VerifyToken
 
 
 class EmailUtil:
