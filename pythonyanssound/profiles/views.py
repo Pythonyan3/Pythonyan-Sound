@@ -6,17 +6,22 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.views import TokenViewBase
 
 from .models import Profile
-from .serializers import ProfileSerializer, TokenRefreshSerializer, LogoutSerializer
-from .tokens import CustomRefreshToken
+from .serializers import ProfileSerializer, TokenRefreshSerializer, LogoutSerializer, LoginSerializer, \
+    PasswordResetSerializer
 from .utils import ProfileUtil
 
 
 class OwnProfileView(APIView):
+    """
+    Works only with authenticated users
+    Processes GET method to obtain user's data
+    and PUT method to change user's data
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         """
-        Authenticated user Profile details
+        Authenticated user Profile's details
         """
         serializer = ProfileSerializer(request.user)
         return Response(serializer.data)
@@ -33,6 +38,10 @@ class OwnProfileView(APIView):
 
 
 class ProfileDetailsView(APIView):
+    """
+    Processes GET method to obtain user's info
+    Takes user_id as user identifier
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, user_id):
@@ -46,6 +55,11 @@ class ProfileDetailsView(APIView):
 
 
 class ProfileCreateView(APIView):
+    """
+    Processes POST method to create new user's Profile
+    Takes only required fields
+    Also sends Email message, with special VerifyToken, to verify user's email address
+    """
     def post(self, request):
         """
         Registration.
@@ -60,26 +74,34 @@ class ProfileCreateView(APIView):
 
 
 class EmailVerificationView(APIView):
+    """
+    Processes GET method to verify user email address
+    Uses custom VerifyToken, which was sent to email
+    """
     def get(self, request, token):
         """Email verification by token"""
         try:
             ProfileUtil.verify_profile(token)
         except TokenError:
-            return Response({"error": "Token is invalid or expired."})
+            return Response({"details": ["Token is invalid or expired."]}, status=status.HTTP_400_BAD_REQUEST)
         except Profile.DoesNotExist:
-            return Response({"error": "Token is invalid or expired."})
-        return Response({"message": "Email verified successful."})
+            return Response({"details": ["Token is invalid or expired."]}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": ["Email verified successful."]}, status=status.HTTP_200_OK)
 
 
-class TokenRefreshView(TokenViewBase):
+class LoginView(TokenViewBase):
     """
-    Token Refresh View with custom serializer
+    Processes POST method to authenticate user
+    Takes user's credentials and returns JSON web tokens (refresh and access).
     """
-    permission_classes = [IsAuthenticated]
-    serializer_class = TokenRefreshSerializer
+    serializer_class = LoginSerializer
 
 
 class LogoutView(APIView):
+    """
+    Processes POST method to logout user by adding token to blacklist
+    Takes user's refresh token
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -89,4 +111,29 @@ class LogoutView(APIView):
         token = serializer.validated_data
         token.blacklist()
 
-        return Response({"message": ["Logout successful"]})
+        return Response({"message": ["Logout successful"]}, status=status.HTTP_200_OK)
+
+
+class TokenRefreshView(TokenViewBase):
+    """
+    Processes POST method to refresh user's access token
+    Takes user's refresh token
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = TokenRefreshSerializer
+
+
+class ChangePasswordView(APIView):
+    """
+    Takes 3 user's credentials
+    old_password -- old user's password to confirm
+    new_password -- new user's password to replace old
+    confirm_new_password -- repeated new user's password to confirm password correct enter
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.update(request.user, serializer.validated_data)
+            return Response(data={"message": ["Password has been changed!"]}, status=status.HTTP_200_OK)

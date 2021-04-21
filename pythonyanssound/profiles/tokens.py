@@ -4,6 +4,7 @@ from django_redis import get_redis_connection
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import Token, BlacklistMixin, AccessToken
+from rest_framework_simplejwt.utils import datetime_to_epoch
 
 
 class CustomBlacklistMixin(BlacklistMixin):
@@ -34,7 +35,7 @@ class CustomBlacklistMixin(BlacklistMixin):
         exp -- key's ttl, that equals to rest of token lifetime
         """
         jti = self.payload[api_settings.JTI_CLAIM]
-        exp = int(self.payload['exp']) - int(time.time())
+        exp = int(self.payload['exp']) - datetime_to_epoch(self.current_time)
 
         redis = get_redis_connection("default")
         redis.set(jti, str(self), ex=exp)
@@ -46,6 +47,9 @@ class CustomBlacklistMixin(BlacklistMixin):
 
 
 class CustomRefreshToken(CustomBlacklistMixin, Token):
+    """
+    Refresh token with custom Blacklist mixin
+    """
     token_type = 'refresh'
     lifetime = api_settings.REFRESH_TOKEN_LIFETIME
     no_copy_claims = (
@@ -76,5 +80,9 @@ class CustomRefreshToken(CustomBlacklistMixin, Token):
 
 
 class VerifyToken(Token):
+    """
+    Custom token to verifying user's email
+    Overrides token type
+    """
     token_type = 'verify'
     lifetime = api_settings.ACCESS_TOKEN_LIFETIME
