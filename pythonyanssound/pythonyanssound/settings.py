@@ -26,6 +26,8 @@ INSTALLED_APPS = [
 
     'rest_framework',
 
+    'music',
+    'playlists',
     'profiles',
 ]
 

@@ -1,15 +1,22 @@
 from django.contrib.auth.models import AbstractBaseUser
-from django.db.models import CharField, ImageField, TextField, BooleanField
+from django.db.models import CharField, ImageField, TextField, ManyToManyField, BooleanField
 
 from .managers import ProfileManager
 
 
 class Profile(AbstractBaseUser):
-    """Custom user model. Fields 'password, last_login are inherited from AbstractBaseUser"""
+    """
+    Custom user model.
+    Fields 'password', 'last_login' are inherited from AbstractBaseUser
+    Uses custom manager
+    """
     username = CharField(max_length=255, unique=True)
     email = CharField(max_length=255, unique=True)
     photo = ImageField(upload_to="images", blank=True)
     biography = TextField(blank=True)
+    # set model name as string to avoid circular import
+    liked_songs = ManyToManyField("music.Song", db_table="songs_likes", related_name="liked_songs")
+    liked_playlists = ManyToManyField("playlists.Playlist", db_table="playlists_likes", related_name="liked_playlists")
     is_active = BooleanField(default=True)
     is_artist = BooleanField(default=False)
     is_verified = BooleanField(default=False)

@@ -4,7 +4,9 @@ from django.core.validators import validate_email
 
 
 class ProfileManager(BaseUserManager):
-    """Profile model manager with email and username as unique identifiers for authentication"""
+    """
+    Profile model manager with email and username as unique identifiers for authentication
+    """
     def create_user(self, email, username, password, **kwargs):
         if not email:
             raise ValueError("User must have an email address")

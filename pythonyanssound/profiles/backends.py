@@ -6,13 +6,19 @@ from .models import Profile
 
 
 class ProfileAuthBackend(BaseBackend):
+    """
+    Custom authentication backend
+    Allow authenticate user by username or email address
+    """
     def authenticate(self, request, **kwargs):
         username = kwargs['username']
         password = kwargs['password']
         try:
+            # check if entered credential is email address
             validate_email(username)
             profile = Profile.objects.filter(email=username).first()
         except ValidationError:
+            # credential isn't email address then it might be username
             profile = Profile.objects.filter(username=username).first()
         if profile and profile.check_password(password):
             return profile
