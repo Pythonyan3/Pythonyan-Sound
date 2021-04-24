@@ -1,5 +1,3 @@
-from abc import ABCMeta
-
 from django.contrib.auth.models import update_last_login
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
@@ -72,7 +70,7 @@ class LogoutSerializer(serializers.Serializer):
     """
     Takes user's refresh token, throw exception if token is invalid or expired
     """
-    refresh = serializers.CharField()
+    refresh = serializers.CharField(max_length=255)
 
     def validate(self, attrs):
         return CustomRefreshToken(attrs['refresh'])

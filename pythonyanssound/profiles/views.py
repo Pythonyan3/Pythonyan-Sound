@@ -7,7 +7,7 @@ from rest_framework_simplejwt.views import TokenViewBase
 
 from .models import Profile
 from .serializers import ProfileSerializer, TokenRefreshSerializer, LogoutSerializer, LoginSerializer, \
-    PasswordResetSerializer
+    PasswordResetSerializer, ProfileCreateSerializer
 from .utils import ProfileUtil
 
 
@@ -60,6 +60,8 @@ class ProfileCreateView(APIView):
     Takes only required fields
     Also sends Email message, with special VerifyToken, to verify user's email address
     """
+    serializer_class = ProfileCreateSerializer
+
     def post(self, request):
         """
         Registration.
@@ -102,10 +104,11 @@ class LogoutView(APIView):
     Processes POST method to logout user by adding token to blacklist
     Takes user's refresh token
     """
+    serializer_class = LogoutSerializer
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = LogoutSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         token = serializer.validated_data
@@ -119,7 +122,6 @@ class TokenRefreshView(TokenViewBase):
     Processes POST method to refresh user's access token
     Takes user's refresh token
     """
-    permission_classes = [IsAuthenticated]
     serializer_class = TokenRefreshSerializer
 
 

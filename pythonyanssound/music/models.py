@@ -16,7 +16,7 @@ class Song(Model):
     title = CharField(max_length=255, blank=False)
     # TODO add s3 storage
     audio = FileField()
-    cover = ImageField()
+    cover = ImageField(blank=True)
     genre = ForeignKey(Genre, on_delete=CASCADE)
     # set model name as string to avoid circular import
     artist = ForeignKey("profiles.Profile", on_delete=CASCADE, related_name="artist")
