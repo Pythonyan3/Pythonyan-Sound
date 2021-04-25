@@ -1,16 +1,16 @@
-from rest_framework import serializers
+from rest_framework.serializers import ModelSerializer
 
 from music.models import Song
 
 
-class SongSerializer(serializers.ModelSerializer):
+class SongSerializer(ModelSerializer):
 
     class Meta:
         model = Song
         exclude = ['listens']
 
 
-class SongUpdateSerializer(serializers.ModelSerializer):
+class SongUpdateSerializer(ModelSerializer):
 
     class Meta:
         model = Song
