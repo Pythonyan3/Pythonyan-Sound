@@ -8,3 +8,11 @@ class PlaylistSerializer(ModelSerializer):
     class Meta:
         model = Playlist
         fields = "__all__"
+
+
+class ShortPlaylistSerializer(ModelSerializer):
+
+    class Meta:
+        model = Playlist
+        fields = ('id', 'title', )
+        ordering = ('title', )

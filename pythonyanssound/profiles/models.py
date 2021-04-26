@@ -15,8 +15,24 @@ class Profile(AbstractBaseUser):
     photo = ImageField(upload_to="images", blank=True)
     biography = TextField(blank=True)
     # set model name as string to avoid circular import
-    liked_songs = ManyToManyField("music.Song", db_table="songs_likes", related_name="liked_songs")
-    liked_playlists = ManyToManyField("playlists.Playlist", db_table="playlists_likes", related_name="liked_playlists")
+    liked_songs = ManyToManyField(
+        "music.Song",
+        db_table="songs_likes",
+        related_name="liked_songs",
+        blank=True
+    )
+    liked_playlists = ManyToManyField(
+        "playlists.Playlist",
+        db_table="playlists_likes",
+        related_name="liked_playlists",
+        blank=True
+    )
+    follows = ManyToManyField(
+        "profiles.Profile",
+        db_table="followings",
+        related_name="profiles_follows",
+        blank=True
+    )
     is_active = BooleanField(default=True)
     is_artist = BooleanField(default=False)
     is_verified = BooleanField(default=False)

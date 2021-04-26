@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import ProfileDetailsView, OwnProfileView, ProfileCreateView, EmailVerificationView, TokenRefreshView, \
-    LogoutView, LoginView, ChangePasswordView
+    LogoutView, LoginView, ChangePasswordView, FollowsListView, FollowView
 
 urlpatterns = [
     path('', OwnProfileView.as_view()),
@@ -11,4 +11,6 @@ urlpatterns = [
     path('logout/', LogoutView.as_view()),
     path('login/', LoginView.as_view()),
     path('token/refresh/', TokenRefreshView.as_view()),
+    path('follows/', FollowsListView.as_view()),
+    path('follows/<int:profile_id>/', FollowView.as_view()),
 ]

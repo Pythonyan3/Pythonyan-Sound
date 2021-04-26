@@ -1,5 +1,7 @@
 from rest_framework import status
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
@@ -19,14 +21,14 @@ class OwnProfileView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request: Request):
         """
         Authenticated user Profile's details
         """
         serializer = ProfileSerializer(request.user)
         return Response(serializer.data)
 
-    def put(self, request):
+    def put(self, request: Request):
         """
         Update user Profile data
         """
@@ -44,7 +46,7 @@ class ProfileDetailsView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, user_id):
+    def get(self, request: Request, user_id: int):
         """
         Profile details related to user with entered primary key
         user_id -- primary key
@@ -62,7 +64,7 @@ class ProfileCreateView(APIView):
     """
     serializer_class = ProfileCreateSerializer
 
-    def post(self, request):
+    def post(self, request: Request):
         """
         Registration.
         Creates new user.
@@ -80,7 +82,7 @@ class EmailVerificationView(APIView):
     Processes GET method to verify user email address
     Uses custom VerifyToken, which was sent to email
     """
-    def get(self, request, token):
+    def get(self, request: Request, token: str):
         """Email verification by token"""
         try:
             ProfileUtil.verify_profile(token)
@@ -107,7 +109,7 @@ class LogoutView(APIView):
     serializer_class = LogoutSerializer
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def post(self, request: Request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -134,8 +136,50 @@ class ChangePasswordView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def post(self, request: Request):
         serializer = PasswordResetSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             serializer.update(request.user, serializer.validated_data)
             return Response(data={"message": ["Password has been changed!"]}, status=status.HTTP_200_OK)
+
+
+class FollowsListView(ListAPIView):
+    """
+    LIST OF USER'S FOLLOWS
+    Processes GET method to obtain list of user's follows
+    Allowed only for authenticated user's
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProfileSerializer
+
+    def get_queryset(self):
+        return self.request.user.follows
+
+
+class FollowView(APIView):
+    """
+    Processes POST method to add profile to authenticated user's follows list.
+    Processes DELETE method to remove profile from authenticated user's follows list.
+    Allows only for authenticated user's.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request, profile_id: int):
+        """
+        FOLLOW ON PROFILE
+        Retrieve profile by requested profile_id.
+        Add profile to authenticated user's follows list
+        """
+        profile = Profile.objects.get(pk=profile_id)
+        request.user.follows.add(profile)
+        return Response(data={"message": f"Successful follow on {profile}"})
+
+    def delete(self, request: Request, profile_id: int):
+        """
+        UNFOLLOW FROM PROFILE
+        Retrieve profile by requested profile_id.
+        Remove profile from authenticated user's follows list
+        """
+        profile = Profile.objects.get(pk=profile_id)
+        request.user.follows.remove(profile)
+        return Response(data={"message": f"Successful unfollow from {profile}"})

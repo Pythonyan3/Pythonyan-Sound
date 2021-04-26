@@ -1,3 +1,4 @@
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -85,3 +86,44 @@ class SongDetailsUpdateDeleteView(APIView):
         serializer = self.serializer_class(instance=song)
         song.delete()
         return Response(serializer.data)
+
+
+class LikedSongsListView(ListAPIView):
+    """
+    LIST OF LIKED SONGS
+    Processes GET method to obtain list of liked songs of user
+    Allowed only for authenticated users
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = SongSerializer
+
+    def get_queryset(self):
+        return self.request.user.liked_songs
+
+
+class LikeSongView(APIView):
+    """
+    Processes POST method to add song to authenticated user's liked songs list.
+    Processes DELETE method to remove song from authenticated user's liked songs list.
+    Allowed only for authenticated users.
+    """
+
+    def post(self, request: Request, song_id: int):
+        """
+        LIKE SONG
+        Retrieves song by requested song_id.
+        Puts song to authenticated user's liked_songs (many to many relation)
+        """
+        song = Song.objects.get(pk=song_id)
+        request.user.liked_songs.add(song)
+        return Response(data={"message": f"{song} song successful added to liked list."})
+
+    def delete(self, request: Request, song_id: int):
+        """
+        UNLIKE SONG
+        Retrieves song by requested song_id.
+        Deletes song to authenticated user's liked_songs (many to many relation)
+        """
+        song = Song.objects.get(pk=song_id)
+        request.user.liked_songs.remove(song)
+        return Response(data={"message": f"{song} song successful removed from liked list."})

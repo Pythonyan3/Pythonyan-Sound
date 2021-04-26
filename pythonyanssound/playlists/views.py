@@ -1,4 +1,5 @@
 from rest_framework import generics
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,7 +7,7 @@ from rest_framework.views import APIView
 
 from playlists.models import Playlist
 from playlists.permissions import IsPlaylistOwner
-from playlists.serializers import PlaylistSerializer
+from playlists.serializers import PlaylistSerializer, ShortPlaylistSerializer
 
 
 class PlaylistListCreateView(generics.ListCreateAPIView):
@@ -67,6 +68,59 @@ class PlaylistRetrieveUpdateDeleteView(APIView):
         """
         playlist = Playlist.objects.get(pk=playlist_id)
         self.check_object_permissions(request, playlist)
-        serialzier = self.serializer_class(instance=playlist)
+        serializer = self.serializer_class(instance=playlist)
         playlist.delete()
-        return Response(serialzier.data)
+        return Response(serializer.data)
+
+
+class ShortPlaylistListView(ListAPIView):
+    """
+    Processes GET method to obtain list of authenticated user's playlists
+    Returning data contains minimum information about playlists
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = ShortPlaylistSerializer
+
+    def get_queryset(self):
+        return Playlist.objects.filter(owner=self.request.user.pk)
+
+
+class LikesPlaylistsListView(ListAPIView):
+    """
+    LIST OF USER'S LIKED PLAYLISTS
+    Processes GET method to obtain authenticated user's liked playlists
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = PlaylistSerializer
+
+    def get_queryset(self):
+        return self.request.user.liked_playlists
+
+
+class LikePlaylistView(APIView):
+    """
+    Processes POST method to add playlist to authenticated user's liked playlists list.
+    Processes DELETE method to remove playlist from authenticated user's liked playlists list.
+    Allowed only for authenticated users.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request, playlist_id: int):
+        """
+        LIKE PLAYLIST
+        Retrieves playlist by requested playlist_id.
+        Puts playlist to authenticated user's liked_playlists (many to many relation)
+        """
+        playlist = Playlist.objects.get(pk=playlist_id)
+        request.user.liked_playlists.add(playlist)
+        return Response(data={"message": f"{playlist} playlist successful added to liked list."})
+
+    def delete(self, request: Request, playlist_id: int):
+        """
+        UNLIKE PLAYLIST
+        Retrieves playlist by requested playlist_id.
+        Deletes playlist to authenticated user's liked_playlists (many to many relation)
+        """
+        playlist = Playlist.objects.get(pk=playlist_id)
+        request.user.liked_playlists.remove(playlist)
+        return Response(data={"message": f"{playlist} playlist successful removed from liked list."})
