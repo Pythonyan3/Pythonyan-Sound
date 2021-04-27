@@ -1,15 +1,17 @@
-from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import EmailMessage
 from django.urls import reverse
 
 from .models import Profile
-from .serializers import ProfileCreateSerializer
 from .tokens import VerifyToken
 
 
 class EmailUtil:
     @staticmethod
-    def send_verifications_message(domain, token, email, username):
+    def send_verifications_message(domain: str, token: str, email: str, username: str):
+        """
+        Sends email message to user to verify email address.
+        Message contains URL with token to perform email address verify
+        """
         email = EmailMessage(
             subject="Email Verification",
             body=f"Hi {username}. Use link below to verify your email address.\n"
@@ -20,21 +22,6 @@ class EmailUtil:
 
 
 class ProfileUtil:
-    @staticmethod
-    def registration(request):
-        serializer = ProfileCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        profile = serializer.save()
-
-        token = VerifyToken.for_user(profile)
-        EmailUtil.send_verifications_message(
-            get_current_site(request).domain,
-            token,
-            profile.email,
-            profile.username
-        )
-        return profile
-
     @staticmethod
     def verify_profile(token):
         token = VerifyToken(token)

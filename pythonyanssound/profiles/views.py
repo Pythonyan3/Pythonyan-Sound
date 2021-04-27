@@ -1,3 +1,4 @@
+from django.contrib.sites.shortcuts import get_current_site
 from rest_framework import status
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -10,6 +11,8 @@ from rest_framework_simplejwt.views import TokenViewBase
 from .models import Profile
 from .serializers import ProfileSerializer, TokenRefreshSerializer, LogoutSerializer, LoginSerializer, \
     PasswordResetSerializer, ProfileCreateSerializer
+from .tasks import send_verify_email_task
+from .tokens import VerifyToken
 from .utils import ProfileUtil
 
 
@@ -70,7 +73,15 @@ class ProfileCreateView(APIView):
         Creates new user.
         Send email verification message.
         """
-        profile = ProfileUtil.registration(request)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile = serializer.save()
+        send_verify_email_task.delay(
+            get_current_site(request).domain,
+            str(VerifyToken.for_user(profile)),
+            profile.email,
+            profile.username
+        )
         return Response(
             {'username': profile.username, 'email': profile.email},
             status=status.HTTP_201_CREATED

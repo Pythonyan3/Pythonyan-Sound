@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from music.models import Song
 from playlists.models import Playlist
 from playlists.permissions import IsPlaylistOwner
 from playlists.serializers import PlaylistSerializer, ShortPlaylistSerializer
@@ -83,6 +84,38 @@ class ShortPlaylistListView(ListAPIView):
 
     def get_queryset(self):
         return Playlist.objects.filter(owner=self.request.user.pk)
+
+
+class SongAddRemovePlaylistView(APIView):
+    """
+    Processes POST method to add song with song_id to user's playlist with playlist_id
+    Allowed only for authenticated user's and playlist's owners
+    """
+    permission_classes = [IsAuthenticated, IsPlaylistOwner]
+
+    def post(self, request: Request, playlist_id: int, song_id: int):
+        """
+        Gets song and playlist by song_id and playlist_id
+        Append song to playlist's songs (many to many relation)
+        Also checks object level permission on playlist
+        """
+        playlist = Playlist.objects.get(pk=playlist_id)
+        self.check_object_permissions(request, playlist)
+        song = Song.objects.get(pk=song_id)
+        playlist.songs.add(song)
+        return Response(data={"message": f"{song}  successful added to {playlist}."})
+
+    def delete(self, request: Request, playlist_id: int, song_id: int):
+        """
+        Gets song and playlist by song_id and playlist_id
+        Remove song from playlist's songs (many to many relation)
+        Also checks object level permission on playlist
+        """
+        playlist = Playlist.objects.get(pk=playlist_id)
+        self.check_object_permissions(request, playlist)
+        song = Song.objects.get(pk=song_id)
+        playlist.songs.remove(song)
+        return Response(data={"message": f"{song}  successful removed from {playlist}."})
 
 
 class LikesPlaylistsListView(ListAPIView):
