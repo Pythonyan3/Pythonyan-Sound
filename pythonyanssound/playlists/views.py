@@ -10,6 +10,8 @@ from playlists.models import Playlist
 from playlists.permissions import IsPlaylistOwner
 from playlists.serializers import PlaylistSerializer, ShortPlaylistSerializer
 
+# TODO add pagination to List views
+
 
 class PlaylistListCreateView(generics.ListCreateAPIView):
     """

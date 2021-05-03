@@ -8,6 +8,8 @@ from music.models import Song
 from music.permissions import IsSongOwner, IsArtist
 from music.serializers import SongSerializer, SongUpdateSerializer
 
+# TODO pagination for list views
+
 
 class SongsListCreateView(APIView):
     """

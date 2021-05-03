@@ -14,5 +14,12 @@ class ShortPlaylistSerializer(ModelSerializer):
 
     class Meta:
         model = Playlist
-        fields = ('id', 'title', )
-        ordering = ('title', )
+        fields = ("id", "title", )
+        ordering = ("title", )
+
+
+class SearchPlaylistSerializer(ModelSerializer):
+
+    class Meta:
+        model = Playlist
+        fields = ("id", "title", "cover")

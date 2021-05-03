@@ -10,6 +10,13 @@ class SongSerializer(ModelSerializer):
         exclude = ['listens']
 
 
+class SearchSongSerializer(ModelSerializer):
+
+    class Meta:
+        model = Song
+        fields = ['id', 'title', 'cover', 'audio']
+
+
 class SongUpdateSerializer(ModelSerializer):
 
     class Meta:

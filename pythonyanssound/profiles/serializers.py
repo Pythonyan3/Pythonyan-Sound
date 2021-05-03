@@ -17,6 +17,12 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'username', 'photo', 'biography', 'is_artist', 'is_verified']
 
 
+class SearchProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ['id', 'username', 'photo']
+
+
 class ProfileCreateSerializer(serializers.ModelSerializer):
     """
     Profile registration serializer, takes only required fields.

@@ -30,7 +30,7 @@ class Profile(AbstractBaseUser):
     follows = ManyToManyField(
         "profiles.Profile",
         db_table="followings",
-        related_name="profiles_follows",
+        related_name="followers",
         blank=True
     )
     is_active = BooleanField(default=True)
