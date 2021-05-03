@@ -6,9 +6,8 @@ from rest_framework.views import APIView
 
 from music.models import Song
 from music.permissions import IsSongOwner, IsArtist
-from music.serializers import SongSerializer, SongUpdateSerializer
-
-# TODO pagination for list views
+from music.serializers import SongSerializer
+from pythonyanssound.pagination import CustomPageNumberPagination
 
 
 class SongsListCreateView(APIView):
@@ -23,9 +22,12 @@ class SongsListCreateView(APIView):
     def get(self, request: Request):
         """
         Returns authenticated user's own songs
+        Uses custom pagination class
         """
-        songs = Song.objects.filter(artist=request.user)
-        serializer = SongSerializer(instance=songs, many=True)
+        songs = Song.objects.filter(artist=request.user).order_by("title")
+        paginator = CustomPageNumberPagination()
+        paged_songs = paginator.paginate_queryset(songs, request, self)
+        serializer = SongSerializer(instance=paged_songs, many=True)
         return Response(data=serializer.data)
 
     def post(self, request: Request):
@@ -50,10 +52,9 @@ class SongDetailsUpdateDeleteView(APIView):
     Processes DELETE method to delete song with entered song_id.
     Uses custom permission class to allow PUT/DELETE method only for song owner
     """
-
-    serializer_class = SongSerializer
     # IsSongOwner is object level permission has to be called before response
     permission_classes = [IsAuthenticated, IsSongOwner]
+    serializer_class = SongSerializer
 
     def get(self, request: Request, song_id: int):
         """
@@ -73,7 +74,7 @@ class SongDetailsUpdateDeleteView(APIView):
         # custom exception handler takes care about ObjectDoesNotExist
         song = Song.objects.get(pk=song_id)
         self.check_object_permissions(request, song)
-        serializer = SongUpdateSerializer(data=request.data, instance=song, partial=True)
+        serializer = self.serializer_class(data=request.data, instance=song, partial=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
         return Response(serializer.data)
@@ -98,9 +99,10 @@ class LikedSongsListView(ListAPIView):
     """
     permission_classes = [IsAuthenticated]
     serializer_class = SongSerializer
+    pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
-        return self.request.user.liked_songs
+        return self.request.user.liked_songs.order_by("title")
 
 
 class LikeSongView(APIView):

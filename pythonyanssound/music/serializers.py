@@ -8,6 +8,7 @@ class SongSerializer(ModelSerializer):
     class Meta:
         model = Song
         exclude = ['listens']
+        read_only_fields = ['artist']
 
 
 class SearchSongSerializer(ModelSerializer):
@@ -15,10 +16,3 @@ class SearchSongSerializer(ModelSerializer):
     class Meta:
         model = Song
         fields = ['id', 'title', 'cover', 'audio']
-
-
-class SongUpdateSerializer(ModelSerializer):
-
-    class Meta:
-        model = Song
-        exclude = ['id', 'artist', 'listens']

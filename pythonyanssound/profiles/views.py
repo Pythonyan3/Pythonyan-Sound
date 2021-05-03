@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.views import TokenViewBase
 
+from pythonyanssound.pagination import CustomPageNumberPagination
 from .models import Profile
 from .serializers import ProfileSerializer, TokenRefreshSerializer, LogoutSerializer, LoginSerializer, \
     PasswordResetSerializer, ProfileCreateSerializer
@@ -162,9 +163,10 @@ class FollowsListView(ListAPIView):
     """
     permission_classes = [IsAuthenticated]
     serializer_class = ProfileSerializer
+    pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
-        return self.request.user.follows
+        return self.request.user.follows.order_by("username")
 
 
 class FollowView(APIView):

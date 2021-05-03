@@ -14,13 +14,13 @@ class ProfileSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Profile
-        fields = ['id', 'email', 'username', 'photo', 'biography', 'is_artist', 'is_verified']
+        fields = ('id', 'email', 'username', 'photo', 'biography', 'is_artist', 'is_verified')
 
 
 class SearchProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ['id', 'username', 'photo']
+        fields = ('id', 'username', 'photo')
 
 
 class ProfileCreateSerializer(serializers.ModelSerializer):
@@ -32,7 +32,7 @@ class ProfileCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ['email', 'username', 'password', 'confirm_password']
+        fields = ('email', 'username', 'password', 'confirm_password')
 
     def save(self, **kwargs):
         profile = Profile(

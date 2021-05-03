@@ -111,6 +111,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'pythonyanssound.pagination.CustomPageNumberPagination',
+    'PAGE_SIZE': 10,
     'EXCEPTION_HANDLER': 'pythonyanssound.utils.custom_exception_handler',
 }
 

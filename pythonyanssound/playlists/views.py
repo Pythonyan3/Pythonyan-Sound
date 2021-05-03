@@ -9,8 +9,7 @@ from music.models import Song
 from playlists.models import Playlist
 from playlists.permissions import IsPlaylistOwner
 from playlists.serializers import PlaylistSerializer, ShortPlaylistSerializer
-
-# TODO add pagination to List views
+from pythonyanssound.pagination import CustomPageNumberPagination
 
 
 class PlaylistListCreateView(generics.ListCreateAPIView):
@@ -21,9 +20,10 @@ class PlaylistListCreateView(generics.ListCreateAPIView):
     """
     permission_classes = [IsAuthenticated]
     serializer_class = PlaylistSerializer
+    pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
-        return Playlist.objects.filter(owner=self.request.user)
+        return Playlist.objects.filter(owner=self.request.user).order_by("title")
 
     def create(self, request: Request, *args, **kwargs):
         request.data._mutable = True
@@ -83,9 +83,10 @@ class ShortPlaylistListView(ListAPIView):
     """
     permission_classes = [IsAuthenticated]
     serializer_class = ShortPlaylistSerializer
+    pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
-        return Playlist.objects.filter(owner=self.request.user.pk)
+        return Playlist.objects.filter(owner=self.request.user.pk).order_by("title")
 
 
 class SongAddRemovePlaylistView(APIView):
@@ -127,9 +128,10 @@ class LikesPlaylistsListView(ListAPIView):
     """
     permission_classes = [IsAuthenticated]
     serializer_class = PlaylistSerializer
+    pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
-        return self.request.user.liked_playlists
+        return self.request.user.liked_playlists.order_by("title")
 
 
 class LikePlaylistView(APIView):

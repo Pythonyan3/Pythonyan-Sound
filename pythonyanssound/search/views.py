@@ -11,6 +11,7 @@ from playlists.models import Playlist
 from playlists.serializers import SearchPlaylistSerializer
 from profiles.models import Profile
 from profiles.serializers import SearchProfileSerializer
+from pythonyanssound.pagination import CustomPageNumberPagination
 
 
 class SearchListView(APIView):
@@ -48,46 +49,39 @@ class SearchListView(APIView):
         })
 
 
-# TODO add pagination to views below
-
-
-class ArtistsSearchView(APIView):
+class ArtistsSearchView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = SearchProfileSerializer
+    pagination_class = CustomPageNumberPagination
 
-    def get(self, request: Request, search_string: str):
-        artists = Profile.objects.annotate(followers_count=Count("followers")).\
-            filter(username__icontains=search_string, is_artist=True).order_by('-followers_count')
-        serializer = self.serializer_class(instance=artists, many=True)
-        return Response(data=serializer.data)
+    def get_queryset(self):
+        return Profile.objects.annotate(followers_count=Count("followers")).\
+            filter(username__icontains=self.kwargs.get("search_string"), is_artist=True).order_by('-followers_count')
 
 
-class ProfilesSearchView(APIView):
+class ProfilesSearchView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = SearchProfileSerializer
+    pagination_class = CustomPageNumberPagination
 
-    def get(self, request: Request, search_string: str):
-        profiles = Profile.objects.annotate(followers_count=Count("followers")). \
-            filter(username__icontains=search_string, is_artist=False).order_by('-followers_count')
-        serializer = self.serializer_class(instance=profiles, many=True)
-        return Response(data=serializer.data)
+    def get_queryset(self):
+        return Profile.objects.annotate(followers_count=Count("followers")). \
+            filter(username__icontains=self.kwargs.get("search_string"), is_artist=False).order_by('-followers_count')
 
 
-class PlaylistsSearchView(APIView):
+class PlaylistsSearchView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = SearchPlaylistSerializer
+    pagination_class = CustomPageNumberPagination
 
-    def get(self, request: Request, search_string: str):
-        playlists = Playlist.objects.filter(title__icontains=search_string)
-        serializer = self.serializer_class(instance=playlists, many=True)
-        return Response(data=serializer.data)
+    def get_queryset(self):
+        return Playlist.objects.filter(title__icontains=self.kwargs.get("search_string")).order_by("title")
 
 
-class SongsSearchView(APIView):
+class SongsSearchView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = SearchSongSerializer
+    pagination_class = CustomPageNumberPagination
 
-    def get(self, request: Request, search_string: str):
-        songs = Song.objects.filter(title__icontains=search_string)
-        serializer = self.serializer_class(instance=songs, many=True)
-        return Response(data=serializer.data)
+    def get_queryset(self):
+        return Song.objects.filter(title__icontains=self.kwargs.get("search_string")).order_by("title")
