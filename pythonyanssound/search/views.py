@@ -50,6 +50,11 @@ class SearchListView(APIView):
 
 
 class ArtistsSearchView(ListAPIView):
+    """
+    Processes GET method to obtain artists (Profile with is_artist=True) corresponding to search string
+    Allowed only to authenticated users
+    Ordering by artist popularity (followers count)
+    """
     permission_classes = [IsAuthenticated]
     serializer_class = SearchProfileSerializer
     pagination_class = CustomPageNumberPagination
@@ -60,6 +65,11 @@ class ArtistsSearchView(ListAPIView):
 
 
 class ProfilesSearchView(ListAPIView):
+    """
+    Processes GET method to obtain profiles (Profile with is_artist=False) corresponding to search string
+    Allowed only to authenticated users
+    Ordering by profile followers count
+    """
     permission_classes = [IsAuthenticated]
     serializer_class = SearchProfileSerializer
     pagination_class = CustomPageNumberPagination
@@ -70,6 +80,11 @@ class ProfilesSearchView(ListAPIView):
 
 
 class PlaylistsSearchView(ListAPIView):
+    """
+    Processes GET method to obtain playlists corresponding to search string
+    Allowed only to authenticated users
+    Ordering by playlist's title
+    """
     permission_classes = [IsAuthenticated]
     serializer_class = SearchPlaylistSerializer
     pagination_class = CustomPageNumberPagination
@@ -79,6 +94,11 @@ class PlaylistsSearchView(ListAPIView):
 
 
 class SongsSearchView(ListAPIView):
+    """
+    Processes GET method to obtain songs corresponding to search string
+    Allowed only to authenticated users
+    Ordering by song's title
+    """
     permission_classes = [IsAuthenticated]
     serializer_class = SearchSongSerializer
     pagination_class = CustomPageNumberPagination

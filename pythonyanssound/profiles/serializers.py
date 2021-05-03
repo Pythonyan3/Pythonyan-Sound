@@ -34,17 +34,17 @@ class ProfileCreateSerializer(serializers.ModelSerializer):
         model = Profile
         fields = ('email', 'username', 'password', 'confirm_password')
 
+    def validate(self, attrs):
+        if attrs['password'] != attrs['confirm_password']:
+            raise ValidationError("Passwords must match", code=status.HTTP_400_BAD_REQUEST)
+        return attrs
+
     def save(self, **kwargs):
-        profile = Profile(
+        profile = Profile.objects.create_user(
             email=self.validated_data['email'],
-            username=self.validated_data['username']
+            username=self.validated_data['username'],
+            password=self.validated_data['password'],
         )
-
-        if self.validated_data['password'] != self.validated_data['confirm_password']:
-            raise serializers.ValidationError({'password': ["Passwords must match."]})
-
-        profile.set_password(self.validated_data['password'])
-        profile.save()
         return profile
 
 

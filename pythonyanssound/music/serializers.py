@@ -8,7 +8,6 @@ class SongSerializer(ModelSerializer):
     class Meta:
         model = Song
         exclude = ['listens']
-        read_only_fields = ['artist']
 
 
 class SearchSongSerializer(ModelSerializer):

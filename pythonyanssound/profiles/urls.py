@@ -3,14 +3,14 @@ from .views import ProfileDetailsView, OwnProfileView, ProfileCreateView, EmailV
     LogoutView, LoginView, ChangePasswordView, FollowsListView, FollowView
 
 urlpatterns = [
-    path('', OwnProfileView.as_view()),
-    path('<int:user_id>/', ProfileDetailsView.as_view()),
-    path('registration/', ProfileCreateView.as_view()),
+    path('', OwnProfileView.as_view(), name="own-profile-details"),
+    path('<int:user_id>/', ProfileDetailsView.as_view(), name="profile-details"),
+    path('registration/', ProfileCreateView.as_view(), name="profile-registration"),
     path('registration/email-verify/<str:token>/', EmailVerificationView.as_view(), name="email-verification"),
-    path('password-change/', ChangePasswordView.as_view()),
-    path('logout/', LogoutView.as_view()),
-    path('login/', LoginView.as_view()),
-    path('token/refresh/', TokenRefreshView.as_view()),
-    path('follows/', FollowsListView.as_view()),
-    path('follows/<int:profile_id>/', FollowView.as_view()),
+    path('password-change/', ChangePasswordView.as_view(), name="profile-change-password"),
+    path('logout/', LogoutView.as_view(), name="profile-logout"),
+    path('login/', LoginView.as_view(), name="profile-login"),
+    path('token/refresh/', TokenRefreshView.as_view(), name="profile-token-refresh"),
+    path('follows/', FollowsListView.as_view(), name="profile-follows"),
+    path('follows/<int:profile_id>/', FollowView.as_view(), name="profile-follows-manage"),
 ]
