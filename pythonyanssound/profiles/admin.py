@@ -20,18 +20,18 @@ class AdminProfile(UserAdmin):
     form = ProfileChangeForm
     model = Profile
 
-    list_display = ('username', 'email', 'is_staff', 'is_active', 'is_artist', 'is_verified')
-    list_filter = ('is_staff', 'is_active', 'is_artist', 'is_verified')
+    list_display = ('username', 'email', 'is_staff', 'is_superuser', 'is_active', 'is_artist', 'is_verified')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'is_artist', 'is_verified')
 
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password', 'photo', 'biography', )}),
         ("Many to many relations", {'fields': ('liked_songs', 'liked_playlists', 'followings',)}),
-        ('Permissions', {'fields': ('is_staff', 'is_artist', 'is_verified', 'is_active', )}),
+        ('Permissions', {'fields': ('is_staff', 'is_superuser', 'is_artist', 'is_verified', 'is_active', )}),
     )
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'photo', 'biography', 'password1', 'password2', 'is_staff',
+            'fields': ('username', 'email', 'photo', 'biography', 'password1', 'password2', 'is_staff', 'is_superuser',
                        'is_active', 'is_artist', 'is_verified')}
          ),
     )

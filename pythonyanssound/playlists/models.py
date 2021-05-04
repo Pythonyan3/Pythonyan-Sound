@@ -5,7 +5,7 @@ class Playlist(Model):
     title = CharField(max_length=255, blank=False)
     cover = ImageField(blank=True)
     owner = ForeignKey("profiles.Profile", on_delete=CASCADE)
-    songs = ManyToManyField("music.Song", db_table="playlists_songs")
+    songs = ManyToManyField("music.Song", db_table="playlists_songs", blank=True)
 
     def __str__(self):
         return self.title

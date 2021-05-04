@@ -8,7 +8,7 @@ class PlaylistSerializer(ModelSerializer):
     class Meta:
         model = Playlist
         fields = "__all__"
-        read_only_fields = ("owner", "songs")
+        read_only_fields = ("songs", )
 
 
 class ShortPlaylistSerializer(ModelSerializer):

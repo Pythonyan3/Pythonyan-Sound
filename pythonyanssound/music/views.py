@@ -112,6 +112,7 @@ class LikeSongView(APIView):
     Processes DELETE method to remove song from authenticated user's liked songs list.
     Allowed only for authenticated users.
     """
+    permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, song_id: int):
         """
