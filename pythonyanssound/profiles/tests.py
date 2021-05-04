@@ -329,3 +329,96 @@ class PasswordChangeTestCase(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
         response = self.client.post(reverse("profile-change-password"), data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ProfilefollowingsListTestCase(APITestCase):
+
+    def setUp(self) -> None:
+        self.profile = Profile.objects.create_user(
+            TEST_EMAIL,
+            TEST_USERNAME,
+            TEST_PASSWORD
+        )
+        self.new_profile = Profile.objects.create_user(
+            "second.mail@mail.ru",
+            "second_user",
+            "second_user_password"
+        )
+        self.profile.followings.add(self.new_profile)
+        self.refresh_token = CustomRefreshToken.for_user(self.profile)
+
+    def test_list_of_followings(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
+        response = self.client.get(reverse("profile-followings"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["username"], self.new_profile.username)
+
+    def test_list_of_followings_unauthorized(self):
+        response = self.client.get(reverse("profile-followings"))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class ProfilesFollowingsManagementTestCase(APITestCase):
+
+    def setUp(self) -> None:
+        self.profile = Profile.objects.create_user(
+            TEST_EMAIL,
+            TEST_USERNAME,
+            TEST_PASSWORD
+        )
+        self.second_profile = Profile.objects.create_user(
+            "second.mail@mail.ru",
+            "second_user",
+            "second_user_password"
+        )
+        self.third_profile = Profile.objects.create_user(
+            "third.mail@mail.ru",
+            "third_user",
+            "third_user_password"
+        )
+        self.profile.followings.add(self.second_profile)
+        self.refresh_token = CustomRefreshToken.for_user(self.profile)
+
+    def test_profiles_followings_add(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
+        response = self.client.post(reverse("profile-followings-management", kwargs={"profile_id": self.third_profile.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(reverse("profile-followings"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 2)
+        self.assertEqual(response.data["results"][0]["username"], self.second_profile.username)
+        self.assertEqual(response.data["results"][1]["username"], self.third_profile.username)
+
+    def test_profiles_followings_add_unauthorized(self):
+        response = self.client.post(reverse("profile-followings-management", kwargs={"profile_id": self.third_profile.pk}))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        response = self.client.get(reverse("profile-followings"))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_profiles_followings_remove(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
+        response = self.client.get(reverse("profile-followings"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["username"], self.second_profile.username)
+
+        response = self.client.delete(
+            reverse("profile-followings-management", kwargs={"profile_id": self.second_profile.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(reverse("profile-followings"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 0)
+
+    def test_profiles_followings_remove_unauthorized(self):
+        response = self.client.delete(
+            reverse("profile-followings-management", kwargs={"profile_id": self.second_profile.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

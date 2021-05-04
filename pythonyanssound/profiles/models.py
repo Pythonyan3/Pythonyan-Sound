@@ -1,10 +1,10 @@
-from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db.models import CharField, ImageField, TextField, ManyToManyField, BooleanField
 
 from .managers import ProfileManager
 
 
-class Profile(AbstractBaseUser):
+class Profile(AbstractBaseUser, PermissionsMixin):
     """
     Custom user model.
     Fields 'password', 'last_login' are inherited from AbstractBaseUser
@@ -27,7 +27,7 @@ class Profile(AbstractBaseUser):
         related_name="liked_playlists",
         blank=True
     )
-    follows = ManyToManyField(
+    followings = ManyToManyField(
         "profiles.Profile",
         db_table="followings",
         related_name="followers",

@@ -7,7 +7,7 @@ class ProfileManager(BaseUserManager):
     """
     Profile model manager with email and username as unique identifiers for authentication
     """
-    def create_user(self, email, username, password, **kwargs):
+    def create_user(self, email, username, password, **extra_fields):
         if not email:
             raise ValueError("User must have an email address")
         if not username:
@@ -17,11 +17,12 @@ class ProfileManager(BaseUserManager):
 
         normalized_email = self.normalize_email(email)
         validate_email(normalized_email)
-        user = self.model(email=normalized_email, username=username, **kwargs)
+        user = self.model(email=normalized_email, username=username, **extra_fields)
         user.set_password(password)
         user.save()
         return user
 
     def create_superuser(self, email, username, password, **kwargs):
         kwargs.setdefault('is_staff', True)
+        kwargs.setdefault('is_superuser', True)
         return self.create_user(email, username, password, **kwargs)

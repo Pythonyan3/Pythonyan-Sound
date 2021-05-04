@@ -25,7 +25,7 @@ class AdminProfile(UserAdmin):
 
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password', 'photo', 'biography', )}),
-        ("Many to many relations", {'fields': ('liked_songs', 'liked_playlists', 'follows',)}),
+        ("Many to many relations", {'fields': ('liked_songs', 'liked_playlists', 'followings',)}),
         ('Permissions', {'fields': ('is_staff', 'is_artist', 'is_verified', 'is_active', )}),
     )
     add_fieldsets = (
@@ -38,7 +38,7 @@ class AdminProfile(UserAdmin):
     search_fields = ('username', 'email',)
     ordering = ('username',)
 
-    filter_horizontal = ('liked_songs', 'liked_playlists', 'follows')
+    filter_horizontal = ('liked_songs', 'liked_playlists', 'followings')
 
 
 admin.site.register(Profile, AdminProfile)

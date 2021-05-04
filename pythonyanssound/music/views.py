@@ -1,3 +1,4 @@
+from rest_framework import status
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -28,7 +29,7 @@ class SongsListCreateView(APIView):
         paginator = CustomPageNumberPagination()
         paged_songs = paginator.paginate_queryset(songs, request, self)
         serializer = SongSerializer(instance=paged_songs, many=True)
-        return Response(data=serializer.data)
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request: Request):
         """
@@ -40,9 +41,9 @@ class SongsListCreateView(APIView):
         request.data._mutable = False
 
         serializer = SongSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class SongDetailsUpdateDeleteView(APIView):

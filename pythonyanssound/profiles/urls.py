@@ -11,6 +11,6 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name="profile-logout"),
     path('login/', LoginView.as_view(), name="profile-login"),
     path('token/refresh/', TokenRefreshView.as_view(), name="profile-token-refresh"),
-    path('follows/', FollowsListView.as_view(), name="profile-follows"),
-    path('follows/<int:profile_id>/', FollowView.as_view(), name="profile-follows-manage"),
+    path('followings/', FollowsListView.as_view(), name="profile-followings"),
+    path('followings/<int:profile_id>/', FollowView.as_view(), name="profile-followings-management"),
 ]

@@ -166,7 +166,7 @@ class FollowsListView(ListAPIView):
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
-        return self.request.user.follows.order_by("username")
+        return self.request.user.followings.order_by("username")
 
 
 class FollowView(APIView):
@@ -184,7 +184,7 @@ class FollowView(APIView):
         Add profile to authenticated user's follows list
         """
         profile = Profile.objects.get(pk=profile_id)
-        request.user.follows.add(profile)
+        request.user.followings.add(profile)
         return Response(data={"message": f"Successful follow on {profile}"})
 
     def delete(self, request: Request, profile_id: int):
@@ -194,5 +194,5 @@ class FollowView(APIView):
         Remove profile from authenticated user's follows list
         """
         profile = Profile.objects.get(pk=profile_id)
-        request.user.follows.remove(profile)
+        request.user.followings.remove(profile)
         return Response(data={"message": f"Successful unfollow from {profile}"})
