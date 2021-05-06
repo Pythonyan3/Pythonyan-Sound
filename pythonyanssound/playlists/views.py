@@ -1,3 +1,4 @@
+from django.http import QueryDict
 from rest_framework import generics
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -26,10 +27,12 @@ class PlaylistListCreateView(generics.ListCreateAPIView):
         return Playlist.objects.filter(owner=self.request.user).order_by("title")
 
     def create(self, request: Request, *args, **kwargs):
-        request.data._mutable = True
-        request.data['owner'] = request.user.pk
-        request.data._mutable = False
-
+        if isinstance(request.data, QueryDict):
+            request.data._mutable = True
+            request.data['owner'] = request.user.pk
+            request.data._mutable = False
+        else:
+            request.data['owner'] = request.user.pk
         return super().create(request, *args, **kwargs)
 
 
@@ -121,7 +124,7 @@ class SongAddRemovePlaylistView(APIView):
         return Response(data={"message": f"{song}  successful removed from {playlist}."})
 
 
-class LikesPlaylistsListView(ListAPIView):
+class LikedPlaylistsListView(ListAPIView):
     """
     LIST OF USER'S LIKED PLAYLISTS
     Processes GET method to obtain authenticated user's liked playlists

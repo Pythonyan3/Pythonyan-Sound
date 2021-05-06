@@ -3,6 +3,8 @@ from rest_framework.serializers import ModelSerializer
 from playlists.models import Playlist
 
 
+# TODO Add serializers with nested relationships
+
 class PlaylistSerializer(ModelSerializer):
 
     class Meta:

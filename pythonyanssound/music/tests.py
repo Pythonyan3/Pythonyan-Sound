@@ -16,11 +16,16 @@ TEST_PASSWORD = "test_password_69"
 class SongsListCreateTestCase(APITestCase):
 
     def setUp(self) -> None:
-        self.profile = Profile.objects.create_user(
+        self.artist = Profile.objects.create_user(
             TEST_EMAIL,
             TEST_USERNAME,
             TEST_PASSWORD,
             is_artist=True
+        )
+        self.profile = Profile.objects.create_user(
+            "profile_test_mail@mail.ru",
+            "profile_test_username",
+            "profile_test_password"
         )
         self.genre = Genre.objects.create(
             genre="test_genre"
@@ -30,12 +35,13 @@ class SongsListCreateTestCase(APITestCase):
             audio="test_uri",
             cover="test_uri",
             genre=self.genre,
-            artist=self.profile
+            artist=self.artist
         )
-        self.refresh_token = CustomRefreshToken.for_user(self.profile)
+        self.artist_refresh_token = CustomRefreshToken.for_user(self.artist)
+        self.profile_refresh_token = CustomRefreshToken.for_user(self.profile)
 
     def test_songs_list(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.artist_refresh_token.access_token)}")
 
         response = self.client.get(reverse("songs-list-create"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -43,7 +49,7 @@ class SongsListCreateTestCase(APITestCase):
         self.assertEqual(response.data['results'][0]['title'], "test_song")
 
     def test_songs_list_bad_page(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.artist_refresh_token.access_token)}")
 
         response = self.client.get(reverse("songs-list-create"), data={"page": 2})
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -58,11 +64,22 @@ class SongsListCreateTestCase(APITestCase):
             "audio": io.BytesIO(b"some bytes"),
             "genre": self.genre.pk
         }
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.artist_refresh_token.access_token)}")
 
         response = self.client.post(reverse("songs-list-create"), data=data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["title"], "new_test_song")
+
+    def test_create_song_by_not_artist(self):
+        data = {
+            "title": "new_test_song",
+            "audio": io.BytesIO(b"some bytes"),
+            "genre": self.genre.pk
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.profile_refresh_token.access_token)}")
+
+        response = self.client.post(reverse("songs-list-create"), data=data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_create_song_unauthorized(self):
         data = {
@@ -79,7 +96,7 @@ class SongsListCreateTestCase(APITestCase):
             "audio": io.BytesIO(b"some bytes"),
             "genre": self.genre.pk
         }
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.artist_refresh_token.access_token)}")
 
         response = self.client.post(reverse("songs-list-create"), data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -89,7 +106,7 @@ class SongsListCreateTestCase(APITestCase):
             "title": "new_test_song",
             "genre": self.genre.pk
         }
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.artist_refresh_token.access_token)}")
 
         response = self.client.post(reverse("songs-list-create"), data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -99,7 +116,7 @@ class SongsListCreateTestCase(APITestCase):
             "title": "new_test_song",
             "audio": io.BytesIO(b"some bytes")
         }
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.artist_refresh_token.access_token)}")
 
         response = self.client.post(reverse("songs-list-create"), data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
