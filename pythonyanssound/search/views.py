@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from music.models import Song
-from music.serializers import ListSongSerializer
+from music.serializers import SongSerializer
 from playlists.models import Playlist
 from playlists.serializers import ListPlaylistsSerializer
 from profiles.models import Profile
@@ -20,6 +20,16 @@ class SearchListView(APIView):
     Allowed only to authenticated users
     """
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_context(self):
+        """
+        Extra context provided to the serializer class.
+        """
+        return {
+            'request': self.request,
+            'format': self.format_kwarg,
+            'view': self
+        }
 
     def get(self, request: Request, search_string: str):
         """
@@ -36,10 +46,10 @@ class SearchListView(APIView):
         playlists = Playlist.objects.filter(title__icontains=search_string)[:10]
         songs = Song.objects.filter(title__icontains=search_string)[:10]
 
-        artists_serializer = ShortProfileSerializer(instance=artists, many=True)
-        profile_serializer = ShortProfileSerializer(instance=profiles, many=True)
-        playlist_serializer = ListPlaylistsSerializer(instance=playlists, many=True)
-        song_serializer = ListSongSerializer(instance=songs, many=True)
+        artists_serializer = ShortProfileSerializer(instance=artists, many=True, context=self.get_serializer_context())
+        profile_serializer = ShortProfileSerializer(instance=profiles, many=True, context=self.get_serializer_context())
+        playlist_serializer = ListPlaylistsSerializer(instance=playlists, many=True, context=self.get_serializer_context())
+        song_serializer = SongSerializer(instance=songs, many=True, context=self.get_serializer_context())
 
         return Response(data={
             "artists": artists_serializer.data,
@@ -100,7 +110,7 @@ class SongsSearchView(ListAPIView):
     Ordering by song's title
     """
     permission_classes = [IsAuthenticated]
-    serializer_class = ListSongSerializer
+    serializer_class = SongSerializer
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):

@@ -1,4 +1,4 @@
-from django.http import QueryDict
+from django.db.models import Exists, OuterRef
 from rest_framework import status
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from music.models import Song
 from music.permissions import IsSongOwner, IsArtist
-from music.serializers import SongSerializer, CreateSongSerializer
+from music.serializers import SongSerializer, SongCreateUpdateDeleteSerializer
 from pythonyanssound.pagination import CustomPageNumberPagination
 
 
@@ -21,15 +21,28 @@ class SongsListCreateView(APIView):
     permission_classes = [IsAuthenticated, IsArtist]
     serializer_class = SongSerializer
 
+    def get_serializer_context(self):
+        """
+        Extra context provided to the serializer class.
+        """
+        return {
+            'request': self.request,
+            'format': self.format_kwarg,
+            'view': self
+        }
+
     def get(self, request: Request):
         """
         Returns authenticated user's own songs
         Uses custom pagination class
         """
-        songs = Song.objects.filter(artist=request.user).order_by("title")
+        # annotate songs with current user's likes
+        songs = Song.objects.filter(artist=request.user).annotate(
+            is_liked=Exists(request.user.liked_songs.filter(pk=OuterRef("pk")))
+        ).order_by("title")
         paginator = CustomPageNumberPagination()
         paged_songs = paginator.paginate_queryset(songs, request, self)
-        serializer = self.serializer_class(instance=paged_songs, many=True)
+        serializer = self.serializer_class(instance=paged_songs, many=True, context=self.get_serializer_context())
         return paginator.get_paginated_response(serializer.data)
 
     def post(self, request: Request):
@@ -37,7 +50,7 @@ class SongsListCreateView(APIView):
         Creates new song.
         Sets as song owner current authenticated user.
         """
-        serializer = CreateSongSerializer(data=request.data)
+        serializer = SongCreateUpdateDeleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         # adding artist field programmatically to avoid creating song with other user as owner
         serializer.save(artist=request.user)
@@ -61,7 +74,9 @@ class SongDetailsUpdateDeleteView(APIView):
         Allowed to all authenticated users
         """
         # custom exception handler takes care about ObjectDoesNotExist
-        song = Song.objects.get(pk=song_id)
+        song = Song.objects.annotate(
+            is_liked=Exists(request.user.liked_songs.filter(pk=OuterRef("pk")))
+        ).get(pk=song_id)
         serializer = self.serializer_class(instance=song)
         return Response(serializer.data)
 
@@ -73,7 +88,7 @@ class SongDetailsUpdateDeleteView(APIView):
         # custom exception handler takes care about ObjectDoesNotExist
         song = Song.objects.get(pk=song_id)
         self.check_object_permissions(request, song)
-        serializer = self.serializer_class(data=request.data, instance=song, partial=True)
+        serializer = SongCreateUpdateDeleteSerializer(data=request.data, instance=song, partial=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
         return Response(serializer.data)
@@ -85,7 +100,7 @@ class SongDetailsUpdateDeleteView(APIView):
         """
         song = Song.objects.get(pk=song_id)
         self.check_object_permissions(request, song)
-        serializer = self.serializer_class(instance=song)
+        serializer = SongCreateUpdateDeleteSerializer(instance=song)
         song.delete()
         return Response(serializer.data)
 

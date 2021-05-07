@@ -24,6 +24,12 @@ class ShortProfileSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'photo')
 
 
+class UsernameProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ("id", "username")
+
+
 class ProfileCreateSerializer(serializers.ModelSerializer):
     """
     Profile registration serializer, takes only required fields.

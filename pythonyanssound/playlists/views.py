@@ -9,7 +9,8 @@ from rest_framework.views import APIView
 from music.models import Song
 from playlists.models import Playlist
 from playlists.permissions import IsPlaylistOwner
-from playlists.serializers import PlaylistSerializer, ShortListPlaylistsSerializer, PlaylistsDetailsSerializer
+from playlists.serializers import PlaylistDetailsSerializer, ShortListPlaylistsSerializer, PlaylistCreateUpdateDeleteSerializer, \
+    ListPlaylistsSerializer
 from pythonyanssound.pagination import CustomPageNumberPagination
 
 
@@ -20,14 +21,14 @@ class PlaylistListCreateView(generics.ListCreateAPIView):
     Processes POST method to create new user's playlist
     """
     permission_classes = [IsAuthenticated]
-    serializer_class = PlaylistSerializer
+    serializer_class = ListPlaylistsSerializer
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
         return Playlist.objects.filter(owner=self.request.user).order_by("title")
 
     def create(self, request: Request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = PlaylistCreateUpdateDeleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(owner=request.user)
         headers = self.get_success_headers(serializer.data)
@@ -42,7 +43,17 @@ class PlaylistRetrieveUpdateDeleteView(APIView):
     Uses custom permission class to allow PUT/DELETE methods only for playlist owner
     """
     permission_classes = [IsAuthenticated, IsPlaylistOwner]
-    serializer_class = PlaylistSerializer
+    serializer_class = PlaylistDetailsSerializer
+
+    def get_serializer_context(self):
+        """
+        Extra context provided to the serializer class.
+        """
+        return {
+            'request': self.request,
+            'format': self.format_kwarg,
+            'view': self
+        }
 
     def get(self, request: Request, playlist_id: int):
         """
@@ -50,7 +61,7 @@ class PlaylistRetrieveUpdateDeleteView(APIView):
         Allowed for all authenticated users
         """
         playlist = Playlist.objects.get(pk=playlist_id)
-        serializer = PlaylistsDetailsSerializer(instance=playlist)
+        serializer = self.serializer_class(instance=playlist, context=self.get_serializer_context())
         return Response(serializer.data)
 
     def put(self, request: Request, playlist_id: int):
@@ -60,7 +71,7 @@ class PlaylistRetrieveUpdateDeleteView(APIView):
         """
         playlist = Playlist.objects.get(pk=playlist_id)
         self.check_object_permissions(request, playlist)
-        serializer = self.serializer_class(instance=playlist, data=request.data, partial=True)
+        serializer = PlaylistCreateUpdateDeleteSerializer(instance=playlist, data=request.data, partial=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
@@ -72,7 +83,7 @@ class PlaylistRetrieveUpdateDeleteView(APIView):
         """
         playlist = Playlist.objects.get(pk=playlist_id)
         self.check_object_permissions(request, playlist)
-        serializer = self.serializer_class(instance=playlist)
+        serializer = PlaylistCreateUpdateDeleteSerializer(instance=playlist)
         playlist.delete()
         return Response(serializer.data)
 
@@ -128,7 +139,7 @@ class LikedPlaylistsListView(ListAPIView):
     Processes GET method to obtain authenticated user's liked playlists
     """
     permission_classes = [IsAuthenticated]
-    serializer_class = PlaylistSerializer
+    serializer_class = ListPlaylistsSerializer
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
