@@ -5,7 +5,7 @@ from rest_framework_simplejwt.serializers import TokenObtainSerializer
 from rest_framework_simplejwt.settings import api_settings
 
 from .models import Profile
-from .tokens import CustomRefreshToken
+from .tokens import CustomRefreshToken, VerifyToken
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -15,9 +15,10 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ('id', 'email', 'username', 'photo', 'biography', 'is_artist', 'is_verified')
+        read_only_fields = ("id", "is_artist", "is_verified")
 
 
-class SearchProfileSerializer(serializers.ModelSerializer):
+class ShortProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ('id', 'username', 'photo')
@@ -46,6 +47,20 @@ class ProfileCreateSerializer(serializers.ModelSerializer):
             password=self.validated_data['password'],
         )
         return profile
+
+
+class EmailVerifySerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=255)
+
+    def validate(self, attrs):
+        VerifyToken(attrs['token'])
+        return attrs
+
+    def save(self, **kwargs):
+        payload = VerifyToken(self.validated_data["token"])
+        profile = Profile.objects.get(pk=payload.get('user_id'))
+        profile.is_verified = True
+        profile.save()
 
 
 class LoginSerializer(TokenObtainSerializer):
@@ -109,7 +124,7 @@ class TokenRefreshSerializer(serializers.Serializer):
         return data
 
 
-class PasswordResetSerializer(serializers.Serializer):
+class PasswordChangeSerializer(serializers.Serializer):
     old_password = serializers.CharField(max_length=128)
     new_password = serializers.CharField(max_length=128)
     confirm_new_password = serializers.CharField(max_length=128)

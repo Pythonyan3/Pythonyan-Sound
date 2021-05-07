@@ -89,12 +89,19 @@ class EmailVerificationTestCase(APITestCase):
             TEST_USERNAME,
             TEST_PASSWORD
         )
+
         self.verify_token = VerifyToken.for_user(profile)
+        self.refresh_token = CustomRefreshToken.for_user(profile)
 
     def test_email_verify(self):
-        response = self.client.get(reverse("email-verification", kwargs={'token': self.verify_token}))
+        response = self.client.post(reverse("email-verification"), data={'token': str(self.verify_token)})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["message"], ["Email verified successful."])
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+        response = self.client.get(reverse("own-profile-details"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['is_verified'])
 
 
 class LoginLogoutTestCase(APITestCase):

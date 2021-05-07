@@ -1,3 +1,4 @@
+from django.http import QueryDict
 from rest_framework import status
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -7,7 +8,7 @@ from rest_framework.views import APIView
 
 from music.models import Song
 from music.permissions import IsSongOwner, IsArtist
-from music.serializers import SongSerializer
+from music.serializers import SongSerializer, CreateSongSerializer
 from pythonyanssound.pagination import CustomPageNumberPagination
 
 
@@ -28,7 +29,7 @@ class SongsListCreateView(APIView):
         songs = Song.objects.filter(artist=request.user).order_by("title")
         paginator = CustomPageNumberPagination()
         paged_songs = paginator.paginate_queryset(songs, request, self)
-        serializer = SongSerializer(instance=paged_songs, many=True)
+        serializer = self.serializer_class(instance=paged_songs, many=True)
         return paginator.get_paginated_response(serializer.data)
 
     def post(self, request: Request):
@@ -36,13 +37,10 @@ class SongsListCreateView(APIView):
         Creates new song.
         Sets as song owner current authenticated user.
         """
-        request.data._mutable = True
-        request.data['artist'] = request.user.pk
-        request.data._mutable = False
-
-        serializer = SongSerializer(data=request.data)
+        serializer = CreateSongSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        # adding artist field programmatically to avoid creating song with other user as owner
+        serializer.save(artist=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 

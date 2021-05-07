@@ -1,5 +1,5 @@
 from django.http import QueryDict
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from music.models import Song
 from playlists.models import Playlist
 from playlists.permissions import IsPlaylistOwner
-from playlists.serializers import PlaylistSerializer, ShortPlaylistSerializer
+from playlists.serializers import PlaylistSerializer, ShortListPlaylistsSerializer, PlaylistsDetailsSerializer
 from pythonyanssound.pagination import CustomPageNumberPagination
 
 
@@ -27,13 +27,11 @@ class PlaylistListCreateView(generics.ListCreateAPIView):
         return Playlist.objects.filter(owner=self.request.user).order_by("title")
 
     def create(self, request: Request, *args, **kwargs):
-        if isinstance(request.data, QueryDict):
-            request.data._mutable = True
-            request.data['owner'] = request.user.pk
-            request.data._mutable = False
-        else:
-            request.data['owner'] = request.user.pk
-        return super().create(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(owner=request.user)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class PlaylistRetrieveUpdateDeleteView(APIView):
@@ -52,7 +50,7 @@ class PlaylistRetrieveUpdateDeleteView(APIView):
         Allowed for all authenticated users
         """
         playlist = Playlist.objects.get(pk=playlist_id)
-        serializer = self.serializer_class(instance=playlist)
+        serializer = PlaylistsDetailsSerializer(instance=playlist)
         return Response(serializer.data)
 
     def put(self, request: Request, playlist_id: int):
@@ -85,7 +83,7 @@ class ShortPlaylistListView(ListAPIView):
     Returning data contains minimum information about playlists
     """
     permission_classes = [IsAuthenticated]
-    serializer_class = ShortPlaylistSerializer
+    serializer_class = ShortListPlaylistsSerializer
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
@@ -137,7 +135,7 @@ class LikedPlaylistsListView(ListAPIView):
         return self.request.user.liked_playlists.order_by("title")
 
 
-class LikePlaylistView(APIView):
+class LikeUnlikePlaylistView(APIView):
     """
     Processes POST method to add playlist to authenticated user's liked playlists list.
     Processes DELETE method to remove playlist from authenticated user's liked playlists list.
@@ -148,7 +146,7 @@ class LikePlaylistView(APIView):
     def post(self, request: Request, playlist_id: int):
         """
         LIKE PLAYLIST
-        Retrieves playlist by requested playlist_id.
+        Retrieves playlist by requested playlist_id
         Puts playlist to authenticated user's liked_playlists (many to many relation)
         """
         playlist = Playlist.objects.get(pk=playlist_id)

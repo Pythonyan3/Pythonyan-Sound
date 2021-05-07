@@ -190,7 +190,8 @@ class SongAddRemovePlaylistTestCase(APITestCase):
         self.first_song = Song.objects.create(
             title="first_song",
             audio="test_uri",
-            genre=self.genre
+            genre=self.genre,
+            artist=self.profile
         )
         self.playlist.songs.add(self.first_song)
         self.refresh_token = CustomRefreshToken.for_user(self.profile)
@@ -201,7 +202,8 @@ class SongAddRemovePlaylistTestCase(APITestCase):
         new_song = Song.objects.create(
             title="second_song",
             audio="test_uri",
-            genre=self.genre
+            genre=self.genre,
+            artist=self.profile
         )
 
         response = self.client.post(reverse(
@@ -216,7 +218,8 @@ class SongAddRemovePlaylistTestCase(APITestCase):
         new_song = Song.objects.create(
             title="second_song",
             audio="test_uri",
-            genre=self.genre
+            genre=self.genre,
+            artist=self.profile
         )
 
         response = self.client.post(reverse(
@@ -227,11 +230,13 @@ class SongAddRemovePlaylistTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_song_add_to_playlist_not_found(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
 
         new_song = Song.objects.create(
             title="second_song",
             audio="test_uri",
-            genre=self.genre
+            genre=self.genre,
+            artist=self.profile
         )
 
         response = self.client.post(reverse(
@@ -242,6 +247,8 @@ class SongAddRemovePlaylistTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_song_add_to_playlist_song_not_found(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
         response = self.client.post(reverse(
             "playlists-songs-management",
             kwargs={"playlist_id": self.playlist.pk, "song_id": 69}
@@ -268,6 +275,8 @@ class SongAddRemovePlaylistTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_song_remove_from_playlist_not_found(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
         response = self.client.delete(reverse(
             "playlists-songs-management",
             kwargs={"playlist_id": 69, "song_id": self.first_song.pk}
@@ -276,9 +285,109 @@ class SongAddRemovePlaylistTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_song_remove_from_playlist_song_not_found(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
         response = self.client.delete(reverse(
             "playlists-songs-management",
             kwargs={"playlist_id": self.playlist.pk, "song_id": 69}
         ))
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class LikedPlaylistsListTestCase(APITestCase):
+
+    def setUp(self) -> None:
+        self.profile = Profile.objects.create_user(
+            TEST_EMAIL,
+            TEST_USERNAME,
+            TEST_PASSWORD
+        )
+
+        self.playlist = Playlist.objects.create(
+            title="test_playlist",
+            owner=self.profile
+        )
+
+        self.profile.liked_playlists.add(self.playlist)
+        self.refresh_token = CustomRefreshToken.for_user(self.profile)
+
+    def test_liked_playlists_list(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
+        response = self.client.get(reverse("liked-playlists"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"][0]["title"], self.playlist.title)
+
+    def test_liked_playlists_list_page_not_found(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
+        response = self.client.get(reverse("liked-playlists"), data={"page": 69})
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_liked_playlists_list_unauthorized(self):
+        response = self.client.get(reverse("liked-playlists"))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class LikeUnlikePlaylistTestCase(APITestCase):
+
+    def setUp(self) -> None:
+        self.profile = Profile.objects.create_user(
+            TEST_EMAIL,
+            TEST_USERNAME,
+            TEST_PASSWORD
+        )
+
+        self.playlist = Playlist.objects.create(
+            title="test_playlist",
+            owner=self.profile
+        )
+
+        self.liked_playlist = Playlist.objects.create(
+            title="liked_playlist",
+            owner=self.profile
+        )
+
+        self.profile.liked_playlists.add(self.liked_playlist)
+        self.refresh_token = CustomRefreshToken.for_user(self.profile)
+
+    def test_like_playlist(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
+        response = self.client.post(reverse("liked-playlists-management", kwargs={"playlist_id": self.playlist.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(reverse("liked-playlists"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"][1]["title"], self.playlist.title)
+
+    def test_like_playlist_not_found(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
+        response = self.client.post(reverse("liked-playlists-management", kwargs={"playlist_id": 69}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_like_playlist_unauthorized(self):
+        response = self.client.post(reverse("liked-playlists-management", kwargs={"playlist_id": self.playlist.pk}))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_unlike_playlist(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
+        response = self.client.delete(reverse("liked-playlists-management", kwargs={"playlist_id": self.liked_playlist.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(reverse("liked-playlists"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(not response.data["results"])
+
+    def test_unlike_playlist_not_found(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
+        response = self.client.delete(reverse("liked-playlists-management", kwargs={"playlist_id": 69}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_unlike_playlist_unauthorized(self):
+        response = self.client.delete(reverse("liked-playlists-management", kwargs={"playlist_id": self.playlist.pk}))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

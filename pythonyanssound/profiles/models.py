@@ -18,13 +18,13 @@ class Profile(AbstractBaseUser, PermissionsMixin):
     liked_songs = ManyToManyField(
         "music.Song",
         db_table="songs_likes",
-        related_name="liked_songs",
+        related_name="liked_profiles",
         blank=True
     )
     liked_playlists = ManyToManyField(
         "playlists.Playlist",
         db_table="playlists_likes",
-        related_name="liked_playlists",
+        related_name="liked_profiles",
         blank=True
     )
     followings = ManyToManyField(

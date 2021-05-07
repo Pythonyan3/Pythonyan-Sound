@@ -11,10 +11,9 @@ from rest_framework_simplejwt.views import TokenViewBase
 from pythonyanssound.pagination import CustomPageNumberPagination
 from .models import Profile
 from .serializers import ProfileSerializer, TokenRefreshSerializer, LogoutSerializer, LoginSerializer, \
-    PasswordResetSerializer, ProfileCreateSerializer
+    PasswordChangeSerializer, ProfileCreateSerializer, EmailVerifySerializer
 from .tasks import send_verify_email_task
 from .tokens import VerifyToken
-from .utils import ProfileUtil
 
 
 class OwnProfileView(APIView):
@@ -94,10 +93,12 @@ class EmailVerificationView(APIView):
     Processes GET method to verify user email address
     Uses custom VerifyToken, which was sent to email
     """
-    def get(self, request: Request, token: str):
+    def post(self, request: Request):
         """Email verification by token"""
         try:
-            ProfileUtil.verify_profile(token)
+            serializer = EmailVerifySerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
         except TokenError:
             return Response({"details": ["Token is invalid or expired."]}, status=status.HTTP_400_BAD_REQUEST)
         except Profile.DoesNotExist:
@@ -149,7 +150,7 @@ class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request):
-        serializer = PasswordResetSerializer(data=request.data)
+        serializer = PasswordChangeSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             serializer.update(request.user, serializer.validated_data)
             return Response(data={"message": ["Password has been changed!"]}, status=status.HTTP_200_OK)

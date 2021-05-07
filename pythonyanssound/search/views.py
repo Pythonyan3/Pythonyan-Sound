@@ -6,11 +6,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from music.models import Song
-from music.serializers import SearchSongSerializer
+from music.serializers import ListSongSerializer
 from playlists.models import Playlist
-from playlists.serializers import SearchPlaylistSerializer
+from playlists.serializers import ListPlaylistsSerializer
 from profiles.models import Profile
-from profiles.serializers import SearchProfileSerializer
+from profiles.serializers import ShortProfileSerializer
 from pythonyanssound.pagination import CustomPageNumberPagination
 
 
@@ -36,10 +36,10 @@ class SearchListView(APIView):
         playlists = Playlist.objects.filter(title__icontains=search_string)[:10]
         songs = Song.objects.filter(title__icontains=search_string)[:10]
 
-        artists_serializer = SearchProfileSerializer(instance=artists, many=True)
-        profile_serializer = SearchProfileSerializer(instance=profiles, many=True)
-        playlist_serializer = SearchPlaylistSerializer(instance=playlists, many=True)
-        song_serializer = SearchSongSerializer(instance=songs, many=True)
+        artists_serializer = ShortProfileSerializer(instance=artists, many=True)
+        profile_serializer = ShortProfileSerializer(instance=profiles, many=True)
+        playlist_serializer = ListPlaylistsSerializer(instance=playlists, many=True)
+        song_serializer = ListSongSerializer(instance=songs, many=True)
 
         return Response(data={
             "artists": artists_serializer.data,
@@ -56,7 +56,7 @@ class ArtistsSearchView(ListAPIView):
     Ordering by artist popularity (followers count)
     """
     permission_classes = [IsAuthenticated]
-    serializer_class = SearchProfileSerializer
+    serializer_class = ShortProfileSerializer
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
@@ -71,7 +71,7 @@ class ProfilesSearchView(ListAPIView):
     Ordering by profile followers count
     """
     permission_classes = [IsAuthenticated]
-    serializer_class = SearchProfileSerializer
+    serializer_class = ShortProfileSerializer
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
@@ -86,7 +86,7 @@ class PlaylistsSearchView(ListAPIView):
     Ordering by playlist's title
     """
     permission_classes = [IsAuthenticated]
-    serializer_class = SearchPlaylistSerializer
+    serializer_class = ListPlaylistsSerializer
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
@@ -100,7 +100,7 @@ class SongsSearchView(ListAPIView):
     Ordering by song's title
     """
     permission_classes = [IsAuthenticated]
-    serializer_class = SearchSongSerializer
+    serializer_class = ListSongSerializer
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
