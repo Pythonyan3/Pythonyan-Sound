@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.core.validators import validate_image_file_extension
 from django.db.models import CharField, ImageField, TextField, ManyToManyField, BooleanField
 
+from pythonyanssound.validators import validate_image_resolution, validate_file_size
 from .managers import ProfileManager
 
 
@@ -10,9 +12,15 @@ class Profile(AbstractBaseUser, PermissionsMixin):
     Fields 'password', 'last_login' are inherited from AbstractBaseUser
     Uses custom manager
     """
-    username = CharField(max_length=255, unique=True)
-    email = CharField(max_length=255, unique=True)
-    photo = ImageField(upload_to="images", blank=True)
+    username = CharField(max_length=255, unique=True, error_messages={
+        "blank": "Username field cannot be empty",
+        "unique": "User with this username already exists"
+    })
+    email = CharField(max_length=255, unique=True, error_messages={
+        "blank": "Email field cannot be empty",
+        "unique": "User with this email address already exists"
+    })
+    photo = ImageField(upload_to="images", blank=True, validators=(validate_image_resolution, validate_file_size))
     biography = TextField(blank=True)
     # set model name as string to avoid circular import
     liked_songs = ManyToManyField(

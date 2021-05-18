@@ -81,7 +81,7 @@ class RegistrationTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-class EmailVerificationTestCase(APITestCase):
+class VerificationEmailTestCase(APITestCase):
 
     def setUp(self) -> None:
         profile = Profile.objects.create_user(
@@ -98,13 +98,42 @@ class EmailVerificationTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["message"], ["Email verified successful."])
 
+        profile = Profile.objects.get(email=TEST_EMAIL)
+        self.assertTrue(profile.is_verified)
+
+    def test_email_verify_bad_token(self):
+        response = self.client.post(reverse("email-verification"), data={'token': "bad_token"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_email_verify_no_token(self):
+        response = self.client.post(reverse("email-verification"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ResendVerificationEmailTestCase(APITestCase):
+
+    def setUp(self) -> None:
+        profile = Profile.objects.create_user(
+            TEST_EMAIL,
+            TEST_USERNAME,
+            TEST_PASSWORD
+        )
+
+        self.refresh_token = CustomRefreshToken.for_user(profile)
+
+    def test_resend_verify_email(self):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
-        response = self.client.get(reverse("own-profile-details"))
+
+        response = self.client.post(reverse("profile-resend-verify-email"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['is_verified'])
+        self.assertEqual(response.data["message"], "Email has been sent.")
+
+    def test_resend_verify_email_unauthorized(self):
+        response = self.client.post(reverse("profile-resend-verify-email"))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class LoginLogoutTestCase(APITestCase):
+class LoginTestCase(APITestCase):
 
     def setUp(self) -> None:
         profile = Profile.objects.create_user(
@@ -130,6 +159,14 @@ class LoginLogoutTestCase(APITestCase):
         response = self.client.post(reverse("profile-login"), data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    def test_login_bad_password(self):
+        data = {
+            "username": TEST_EMAIL,
+            "password": "bad_password"
+        }
+        response = self.client.post(reverse("profile-login"), data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_login_no_username(self):
         data = {
             "password": TEST_PASSWORD
@@ -144,25 +181,44 @@ class LoginLogoutTestCase(APITestCase):
         response = self.client.post(reverse("profile-login"), data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+
+class LogoutTestCase(APITestCase):
+
+    def setUp(self) -> None:
+        profile = Profile.objects.create_user(
+            TEST_EMAIL,
+            TEST_USERNAME,
+            TEST_PASSWORD
+        )
+        self.refresh_token = CustomRefreshToken.for_user(profile)
+
     def test_logout(self):
         data = {
             "refresh": str(self.refresh_token)
         }
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
-        response = self.client.post(reverse("profile-logout"), data)
+        response = self.client.delete(reverse("profile-logout"), data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_logout_bad_token(self):
+        data = {
+            "refresh": "bad_token"
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+        response = self.client.delete(reverse("profile-logout"), data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_logout_no_refresh_token(self):
         data = {}
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
-        response = self.client.post(reverse("profile-logout"), data)
+        response = self.client.delete(reverse("profile-logout"), data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_logout_unauthorized(self):
         data = {
             "refresh": str(self.refresh_token)
         }
-        response = self.client.post(reverse("profile-logout"), data)
+        response = self.client.delete(reverse("profile-logout"), data)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
@@ -177,13 +233,13 @@ class OwnProfileTestCase(APITestCase):
 
     def test_own_profile_details(self):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
-        response = self.client.get(reverse("own-profile-details"))
+        response = self.client.get(reverse("own-profile-details-update"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['username'], TEST_USERNAME)
         self.assertEqual(response.data['email'], TEST_EMAIL)
 
     def test_own_profile_details_unauthorized(self):
-        response = self.client.get(reverse("own-profile-details"))
+        response = self.client.get(reverse("own-profile-details-update"))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_profile_update(self):
@@ -191,16 +247,51 @@ class OwnProfileTestCase(APITestCase):
             "username": "new_username"
         }
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
-        response = self.client.put(reverse("own-profile-details"), data)
+        response = self.client.put(reverse("own-profile-details-update"), data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['username'], "new_username")
         self.assertEqual(response.data['email'], TEST_EMAIL)
+
+    def test_profile_update_read_only_fields(self):
+        data = {
+            "id": 69,
+            "is_artist": True,
+            "is_verified": True
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+        response = self.client.put(reverse("own-profile-details-update"), data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        profile = Profile.objects.get(email=TEST_EMAIL)
+        self.assertNotEqual(profile.pk, 69)
+        self.assertFalse(profile.is_artist)
+        self.assertFalse(profile.is_verified)
 
     def test_profile_update_unauthorized(self):
         data = {
             "username": "new_username"
         }
-        response = self.client.put(reverse("own-profile-details"), data)
+        response = self.client.put(reverse("own-profile-details-update"), data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class OwnProfileShortDetailsTestCase(APITestCase):
+    def setUp(self) -> None:
+        profile = Profile.objects.create_user(
+            TEST_EMAIL,
+            TEST_USERNAME,
+            TEST_PASSWORD
+        )
+        self.refresh_token = CustomRefreshToken.for_user(profile)
+
+    def test_own_profile_details(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+        response = self.client.get(reverse("own-profile-short-details"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['username'], TEST_USERNAME)
+
+    def test_own_profile_details_unauthorized(self):
+        response = self.client.get(reverse("own-profile-short-details"))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
@@ -247,6 +338,14 @@ class TokenRefreshTestCase(APITestCase):
         response = self.client.post(reverse("profile-token-refresh"), data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    def token_refresh_bad_refresh_token(self):
+        data = {
+            "refresh": "bad_token"
+        }
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+        response = self.client.post(reverse("profile-token-refresh"), data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def token_refresh_no_refresh_token(self):
         data = {}
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
@@ -280,6 +379,9 @@ class PasswordChangeTestCase(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
         response = self.client.post(reverse("profile-change-password"), data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        profile = Profile.objects.get(email=TEST_EMAIL)
+        self.assertTrue(profile.check_password("new_password_1234"))
 
     def test_change_password_unauthorized(self):
         data = {
@@ -317,7 +419,7 @@ class PasswordChangeTestCase(APITestCase):
         response = self.client.post(reverse("profile-change-password"), data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_change_password_old_password_match_error(self):
+    def test_change_password_old_password_check_error(self):
         data = {
             "old_password": "wrong_old_password",
             "new_password": "new_password_1234",
@@ -338,7 +440,7 @@ class PasswordChangeTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-class ProfilefollowingsListTestCase(APITestCase):
+class ProfileFollowingsListTestCase(APITestCase):
 
     def setUp(self) -> None:
         self.profile = Profile.objects.create_user(
@@ -394,11 +496,13 @@ class ProfilesFollowingsManagementTestCase(APITestCase):
         response = self.client.post(reverse("profile-followings-management", kwargs={"profile_id": self.third_profile.pk}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        response = self.client.get(reverse("profile-followings"))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 2)
-        self.assertEqual(response.data["results"][0]["username"], self.second_profile.username)
-        self.assertEqual(response.data["results"][1]["username"], self.third_profile.username)
+        self.assertEqual(len(self.profile.followings.all()), 2)
+
+    def test_profiles_followings_add_bad_profile_id(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
+        response = self.client.post(reverse("profile-followings-management", kwargs={"profile_id": 69}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_profiles_followings_add_unauthorized(self):
         response = self.client.post(reverse("profile-followings-management", kwargs={"profile_id": self.third_profile.pk}))
@@ -410,19 +514,20 @@ class ProfilesFollowingsManagementTestCase(APITestCase):
     def test_profiles_followings_remove(self):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
 
-        response = self.client.get(reverse("profile-followings"))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 1)
-        self.assertEqual(response.data["results"][0]["username"], self.second_profile.username)
-
         response = self.client.delete(
             reverse("profile-followings-management", kwargs={"profile_id": self.second_profile.pk})
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        response = self.client.get(reverse("profile-followings"))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 0)
+        self.assertEqual(len(self.profile.followings.all()), 0)
+
+    def test_profiles_followings_remove_bad_profile_id(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")
+
+        response = self.client.delete(
+            reverse("profile-followings-management", kwargs={"profile_id": 69})
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_profiles_followings_remove_unauthorized(self):
         response = self.client.delete(

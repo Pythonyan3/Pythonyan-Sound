@@ -1,12 +1,15 @@
 from django.urls import path
-from .views import ProfileDetailsView, OwnProfileView, ProfileCreateView, EmailVerificationView, TokenRefreshView, \
-    LogoutView, LoginView, ChangePasswordView, FollowsListView, FollowView
+from .views import ProfileDetailsView, OwnProfileDetailsUpdateView, ProfileCreateView, VerificationEmailView, \
+    TokenRefreshView, \
+    LogoutView, LoginView, ChangePasswordView, FollowsListView, FollowView, ResendVerificationEmailView
 
 urlpatterns = [
-    path('', OwnProfileView.as_view(), name="own-profile-details"),
+    path('', OwnProfileDetailsUpdateView.as_view(), name="own-profile-details-update"),
+    path('short/', OwnProfileDetailsUpdateView.as_view(), name="own-profile-short-details"),
     path('<int:user_id>/', ProfileDetailsView.as_view(), name="profile-details"),
     path('registration/', ProfileCreateView.as_view(), name="profile-registration"),
-    path('registration/email-verify/', EmailVerificationView.as_view(), name="email-verification"),
+    path('registration/resend-verify-email/', ResendVerificationEmailView.as_view(), name="profile-resend-verify-email"),
+    path('registration/email-verify/', VerificationEmailView.as_view(), name="email-verification"),
     path('password-change/', ChangePasswordView.as_view(), name="profile-change-password"),
     path('logout/', LogoutView.as_view(), name="profile-logout"),
     path('login/', LoginView.as_view(), name="profile-login"),

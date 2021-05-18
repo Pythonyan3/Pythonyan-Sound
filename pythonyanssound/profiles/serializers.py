@@ -1,7 +1,7 @@
 from django.contrib.auth.models import update_last_login
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
-from rest_framework_simplejwt.serializers import TokenObtainSerializer
+from rest_framework_simplejwt.serializers import TokenObtainSerializer, PasswordField
 from rest_framework_simplejwt.settings import api_settings
 
 from .models import Profile
@@ -40,19 +40,23 @@ class ProfileCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ('email', 'username', 'password', 'confirm_password')
+        extra_kwargs = {
+            "username": {
+                "error_messages": {
+                    "blank": "Please enter your username"
+                }
+            },
+            "email": {
+                "error_messages": {
+                    "blank": "Please enter your email address"
+                }
+            }
+        }
 
     def validate(self, attrs):
         if attrs['password'] != attrs['confirm_password']:
             raise ValidationError("Passwords must match", code=status.HTTP_400_BAD_REQUEST)
         return attrs
-
-    def save(self, **kwargs):
-        profile = Profile.objects.create_user(
-            email=self.validated_data['email'],
-            username=self.validated_data['username'],
-            password=self.validated_data['password'],
-        )
-        return profile
 
 
 class EmailVerifySerializer(serializers.Serializer):
@@ -62,18 +66,26 @@ class EmailVerifySerializer(serializers.Serializer):
         VerifyToken(attrs['token'])
         return attrs
 
-    def save(self, **kwargs):
-        payload = VerifyToken(self.validated_data["token"])
-        profile = Profile.objects.get(pk=payload.get('user_id'))
-        profile.is_verified = True
-        profile.save()
-
 
 class LoginSerializer(TokenObtainSerializer):
     """
     Custom token pair obtain serializer
     Creates new tokens pair for user
     """
+
+    default_error_messages = {
+        'no_active_account': ('Incorrect username or password', )
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields[self.username_field] = serializers.CharField(error_messages={
+            "blank": "Please enter your username or email address"
+        })
+        self.fields['password'] = PasswordField(error_messages={
+            "blank": "Please enter your password"
+        })
 
     @classmethod
     def get_token(cls, user):
@@ -84,6 +96,10 @@ class LoginSerializer(TokenObtainSerializer):
 
         refresh = self.get_token(self.user)
 
+        data["username"] = self.user.username
+        data["photo"] = str(self.user.photo)
+        data["is_artist"] = self.user.is_artist
+        data["is_verified"] = self.user.is_verified
         data['refresh'] = str(refresh)
         data['access'] = str(refresh.access_token)
 
@@ -100,7 +116,8 @@ class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField(max_length=255)
 
     def validate(self, attrs):
-        return CustomRefreshToken(attrs['refresh'])
+        if attrs.get("refresh"):
+            return attrs
 
 
 class TokenRefreshSerializer(serializers.Serializer):
@@ -134,20 +151,3 @@ class PasswordChangeSerializer(serializers.Serializer):
     old_password = serializers.CharField(max_length=128)
     new_password = serializers.CharField(max_length=128)
     confirm_new_password = serializers.CharField(max_length=128)
-
-    def update(self, instance, validated_data):
-        if not instance.check_password(validated_data['old_password']):
-            raise ValidationError(
-                detail={"detail": ["Incorrect profile's password!"]},
-                code=status.HTTP_400_BAD_REQUEST
-            )
-        else:
-            if validated_data['new_password'] == validated_data['confirm_new_password']:
-                instance.set_password(validated_data['new_password'])
-                instance.save()
-                return instance
-            else:
-                raise ValidationError(
-                    detail={"detail": ["New passwords must match!"]},
-                    code=status.HTTP_400_BAD_REQUEST
-                )

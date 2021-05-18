@@ -41,9 +41,12 @@ class SearchListView(APIView):
         # python's slices works like SQL LIMIT
         artists = Profile.objects.annotate(followers_count=Count("followers")).\
             filter(username__icontains=search_string, is_artist=True).order_by('-followers_count')[:10]
+
         profiles = Profile.objects.annotate(followers_count=Count("followers")). \
             filter(username__icontains=search_string, is_artist=False).order_by('-followers_count')[:10]
+
         playlists = Playlist.objects.filter(title__icontains=search_string)[:10]
+
         songs = Song.objects.filter(title__icontains=search_string)[:10]
 
         artists_serializer = ShortProfileSerializer(instance=artists, many=True, context=self.get_serializer_context())

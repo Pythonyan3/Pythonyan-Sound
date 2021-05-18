@@ -1,22 +1,21 @@
-from django.contrib.sites.shortcuts import get_current_site
 from rest_framework import status
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.views import TokenViewBase
 
 from pythonyanssound.pagination import CustomPageNumberPagination
 from .models import Profile
 from .serializers import ProfileSerializer, TokenRefreshSerializer, LogoutSerializer, LoginSerializer, \
-    PasswordChangeSerializer, ProfileCreateSerializer, EmailVerifySerializer
+    ShortProfileSerializer
+from .services import register_new_profile, verify_email_address, blacklist_refresh_token, change_user_password
 from .tasks import send_verify_email_task
 from .tokens import VerifyToken
 
 
-class OwnProfileView(APIView):
+class OwnProfileDetailsUpdateView(APIView):
     """
     Works only with authenticated users
     Processes GET method to obtain user's data
@@ -28,7 +27,7 @@ class OwnProfileView(APIView):
         """
         Authenticated user Profile's details
         """
-        serializer = ProfileSerializer(request.user)
+        serializer = ProfileSerializer(instance=request.user)
         return Response(serializer.data)
 
     def put(self, request: Request):
@@ -37,8 +36,23 @@ class OwnProfileView(APIView):
         """
         self.check_object_permissions(request, request.user)
         serializer = ProfileSerializer(instance=request.user, data=request.data, partial=True)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+class OwnProfileShortDetailsView(APIView):
+    """
+    Works only with authenticated users
+    Processes GET method to obtain user's data (only id and username)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request):
+        """
+        Authenticated user Profile's details (shortly form)
+        """
+        serializer = ShortProfileSerializer(instance=request.user)
         return Response(serializer.data)
 
 
@@ -55,7 +69,7 @@ class ProfileDetailsView(APIView):
         user_id -- primary key
         """
         profile = Profile.objects.get(pk=user_id, is_active=True)
-        serializer = ProfileSerializer(profile)
+        serializer = ProfileSerializer(instance=profile)
         return Response(serializer.data)
 
 
@@ -65,7 +79,6 @@ class ProfileCreateView(APIView):
     Takes only required fields
     Also sends Email message, with special VerifyToken, to verify user's email address
     """
-    serializer_class = ProfileCreateSerializer
 
     def post(self, request: Request):
         """
@@ -73,36 +86,41 @@ class ProfileCreateView(APIView):
         Creates new user.
         Send email verification message.
         """
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        profile = serializer.save()
-        send_verify_email_task.delay(
-            get_current_site(request).domain,
-            str(VerifyToken.for_user(profile)),
-            profile.email,
-            profile.username
-        )
+        profile = register_new_profile(request)
         return Response(
             {'username': profile.username, 'email': profile.email},
             status=status.HTTP_201_CREATED
         )
 
 
-class EmailVerificationView(APIView):
+class ResendVerificationEmailView(APIView):
+    """
+    Processes POST method to resend verification email
+    Allowed only to authenticated users.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request):
+        """
+        Send email verification message.
+        """
+        # sending verification message
+        send_verify_email_task.delay(
+            str(VerifyToken.for_user(request.user)),
+            request.user.email,
+            request.user.username
+        )
+        return Response(data={"message": "Email has been sent."})
+
+
+class VerificationEmailView(APIView):
     """
     Processes GET method to verify user email address
     Uses custom VerifyToken, which was sent to email
     """
     def post(self, request: Request):
         """Email verification by token"""
-        try:
-            serializer = EmailVerifySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-        except TokenError:
-            return Response({"details": ["Token is invalid or expired."]}, status=status.HTTP_400_BAD_REQUEST)
-        except Profile.DoesNotExist:
-            return Response({"details": ["Token is invalid or expired."]}, status=status.HTTP_400_BAD_REQUEST)
+        verify_email_address(request)
         return Response({"message": ["Email verified successful."]}, status=status.HTTP_200_OK)
 
 
@@ -122,13 +140,8 @@ class LogoutView(APIView):
     serializer_class = LogoutSerializer
     permission_classes = [IsAuthenticated]
 
-    def post(self, request: Request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        token = serializer.validated_data
-        token.blacklist()
-
+    def delete(self, request: Request):
+        blacklist_refresh_token(request)
         return Response({"message": ["Logout successful"]}, status=status.HTTP_200_OK)
 
 
@@ -150,10 +163,8 @@ class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request):
-        serializer = PasswordChangeSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            serializer.update(request.user, serializer.validated_data)
-            return Response(data={"message": ["Password has been changed!"]}, status=status.HTTP_200_OK)
+        change_user_password(request)
+        return Response(data={"message": ["Password has been changed!"]}, status=status.HTTP_200_OK)
 
 
 class FollowsListView(ListAPIView):
@@ -194,6 +205,6 @@ class FollowView(APIView):
         Retrieve profile by requested profile_id.
         Remove profile from authenticated user's follows list
         """
-        profile = Profile.objects.get(pk=profile_id)
+        profile = request.user.followings.get(pk=profile_id)
         request.user.followings.remove(profile)
         return Response(data={"message": f"Successful unfollow from {profile}"})

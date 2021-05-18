@@ -134,7 +134,7 @@ class SearchPlaylistTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class SearchPlaylistTestCase(APITestCase):
+class SearchSongTestCase(APITestCase):
 
     def setUp(self) -> None:
         self.profile = Profile.objects.create_user(

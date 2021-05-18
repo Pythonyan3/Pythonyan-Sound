@@ -1,4 +1,7 @@
+from django.core.validators import FileExtensionValidator
 from django.db.models import Model, CharField, FileField, ImageField, ForeignKey, CASCADE, IntegerField, ManyToManyField
+
+from pythonyanssound.validators import validate_image_resolution, validate_file_size
 
 
 class Genre(Model):
@@ -15,8 +18,8 @@ class Genre(Model):
 class Song(Model):
     title = CharField(max_length=255, blank=False)
     # TODO add s3 storage
-    audio = FileField()
-    cover = ImageField(blank=True)
+    audio = FileField(validators=(FileExtensionValidator(allowed_extensions=["mp3", "mp4"]), validate_file_size))
+    cover = ImageField(blank=True, validators=(validate_image_resolution, validate_file_size))
     genre = ForeignKey(Genre, on_delete=CASCADE)
     # set model name as string to avoid circular import
     artist = ForeignKey("profiles.Profile", on_delete=CASCADE, related_name="artist")
@@ -25,6 +28,9 @@ class Song(Model):
 
     def __str__(self):
         return f"{self.artist} - {self.title}"
+
+    def clean(self):
+        pass
 
     class Meta:
         db_table = "music"

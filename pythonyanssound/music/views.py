@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from music.models import Song
 from music.permissions import IsSongOwner, IsArtist
 from music.serializers import SongSerializer, SongCreateUpdateDeleteSerializer
+from music.services import get_paginated_songs_list_response
 from pythonyanssound.pagination import CustomPageNumberPagination
 
 
@@ -36,14 +37,7 @@ class SongsListCreateView(APIView):
         Returns authenticated user's own songs
         Uses custom pagination class
         """
-        # annotate songs with current user's likes
-        songs = Song.objects.filter(artist=request.user).annotate(
-            is_liked=Exists(request.user.liked_songs.filter(pk=OuterRef("pk")))
-        ).order_by("title")
-        paginator = CustomPageNumberPagination()
-        paged_songs = paginator.paginate_queryset(songs, request, self)
-        serializer = self.serializer_class(instance=paged_songs, many=True, context=self.get_serializer_context())
-        return paginator.get_paginated_response(serializer.data)
+        return get_paginated_songs_list_response(request, self)
 
     def post(self, request: Request):
         """
@@ -89,8 +83,8 @@ class SongDetailsUpdateDeleteView(APIView):
         song = Song.objects.get(pk=song_id)
         self.check_object_permissions(request, song)
         serializer = SongCreateUpdateDeleteSerializer(data=request.data, instance=song, partial=True)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data)
 
     def delete(self, request: Request, song_id: int):
@@ -143,6 +137,6 @@ class LikeSongView(APIView):
         Retrieves song by requested song_id.
         Deletes song to authenticated user's liked_songs (many to many relation)
         """
-        song = Song.objects.get(pk=song_id)
+        song = request.user.liked_songs.get(pk=song_id)
         request.user.liked_songs.remove(song)
         return Response(data={"message": f"{song} song successful removed from liked list."})
