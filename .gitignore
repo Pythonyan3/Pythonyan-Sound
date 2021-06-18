@@ -3,4 +3,4 @@ venv/
 __pycache__/
 migrations/
 files/
-pythonyanssound/db.sqlite3
+.env

@@ -1,9 +1,13 @@
 from django.contrib.auth.models import update_last_login
+from django.db.models import Exists, OuterRef, Count
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
+from rest_framework.fields import SerializerMethodField, BooleanField
 from rest_framework_simplejwt.serializers import TokenObtainSerializer, PasswordField
 from rest_framework_simplejwt.settings import api_settings
 
+from music.serializers import SongSerializer
+from playlists.serializers import ListPlaylistsSerializer
 from .models import Profile
 from .tokens import CustomRefreshToken, VerifyToken
 
@@ -18,16 +22,33 @@ class ProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "is_artist", "is_verified")
 
 
+class ProfileDetailsSerializer(serializers.ModelSerializer):
+    playlists = ListPlaylistsSerializer(many=True)
+    songs = SerializerMethodField("annotate_and_limit_popular_songs")
+    is_followed = BooleanField()
+
+    class Meta:
+        model = Profile
+        fields = ('id', 'username', 'photo', 'biography', 'playlists', 'songs', 'is_followed', 'is_artist', 'is_verified')
+        read_only_fields = ("id", "is_artist", "is_verified")
+
+    def annotate_and_limit_popular_songs(self, profile: Profile):
+        if profile.is_artist:
+            authorized_profile = self.context.get("request").user
+            songs = profile.songs.annotate(
+                is_liked=Exists(authorized_profile.liked_songs.filter(pk=OuterRef("pk"))),
+                likes_count=Count("liked_profiles")
+            ).order_by("-likes_count")[:10]
+            serializer = SongSerializer(songs, many=True, context=self.context)
+            return serializer.data
+        serializer = SongSerializer(many=True, context=self.context)
+        return serializer.data
+
+
 class ShortProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ('id', 'username', 'photo')
-
-
-class UsernameProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Profile
-        fields = ("id", "username")
+        fields = ('id', 'username', 'photo', 'is_artist')
 
 
 class ProfileCreateSerializer(serializers.ModelSerializer):
@@ -96,6 +117,7 @@ class LoginSerializer(TokenObtainSerializer):
 
         refresh = self.get_token(self.user)
 
+        data["id"] = self.user.pk
         data["username"] = self.user.username
         data["photo"] = str(self.user.photo)
         data["is_artist"] = self.user.is_artist

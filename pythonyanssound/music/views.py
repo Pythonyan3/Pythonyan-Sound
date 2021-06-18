@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 from django.db.models import Exists, OuterRef
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -140,3 +143,30 @@ class LikeSongView(APIView):
         song = request.user.liked_songs.get(pk=song_id)
         request.user.liked_songs.remove(song)
         return Response(data={"message": f"{song} song successful removed from liked list."})
+
+
+class SongsNewReleasesView(ListAPIView):
+    """
+    New Song Releases
+    Processes GET method to obtain new released songs
+    Allowed only to authenticated users
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = SongSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        """
+        Returns queryset of songs
+        Filtered by upload date (last week)
+        Filtered by followed profiles of current user
+        Limited by 10 songs
+        """
+        one_week_ago = timezone.now() - timedelta(days=7)
+        return Song.objects.annotate(
+            is_followed_on_artist=Exists(self.request.user.followings.filter(pk=OuterRef("artist"))),
+            is_liked=Exists(self.request.user.liked_songs.filter(pk=OuterRef("pk")))
+        ).filter(
+            is_followed_on_artist=True,
+            upload_date__gte=one_week_ago
+        ).order_by("-upload_date", "title")[:10]

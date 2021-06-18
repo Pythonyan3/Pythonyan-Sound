@@ -71,10 +71,10 @@ WSGI_APPLICATION = 'pythonyanssound.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'pythonyanssound',
+        'NAME': os.environ.get('POSTGRES_DB'),
         'USER': os.environ.get('POSTGRES_USER'),
         'PASSWORD': os.environ.get('POSTGRES_PASS'),
-        'HOST': '127.0.0.1',
+        'HOST': os.environ.get('DB_HOST'),
         'PORT': '5432',
     }
 }
@@ -152,13 +152,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 FRONTEND_BASE_URL = "http://localhost:8080"
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ORIGIN_WHITELIST = (
-    "http://localhost:8080",
-)
+CORS_ORIGIN_ALLOW_ALL = True
 
 APP_IMAGE_HEIGHT = 1000
 APP_IMAGE_WIDTH = 1000
-APP_FILE_MAX_SIZE = 1024 * 1024 * 10
+APP_FILE_MAX_SIZE = 1024 * 1024 * 50
 
 # Email settings
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -170,7 +168,7 @@ EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 
 # Redis settings
-REDIS_HOST = "127.0.0.1"
+REDIS_HOST = os.environ.get("REDIS_HOST")
 REDIS_PORT = "6379"
 CACHES = {
     "default": {

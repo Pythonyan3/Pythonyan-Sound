@@ -309,7 +309,6 @@ class ProfileDetailsTestCase(APITestCase):
         response = self.client.get(reverse("profile-details", kwargs={"user_id": self.profile.pk}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['username'], TEST_USERNAME)
-        self.assertEqual(response.data['email'], TEST_EMAIL)
 
     def test_profile_details_unauthorized(self):
         response = self.client.get(reverse("profile-details", kwargs={"user_id": self.profile.pk}))

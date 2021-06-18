@@ -1,4 +1,4 @@
-from django.db.models import Model, CharField, ImageField, ForeignKey, CASCADE, ManyToManyField
+from django.db.models import Model, CharField, ImageField, ForeignKey, CASCADE, ManyToManyField, DateTimeField
 
 from pythonyanssound.validators import validate_image_resolution, validate_file_size
 
@@ -6,7 +6,8 @@ from pythonyanssound.validators import validate_image_resolution, validate_file_
 class Playlist(Model):
     title = CharField(max_length=255, blank=False)
     cover = ImageField(blank=True, validators=(validate_image_resolution, validate_file_size))
-    owner = ForeignKey("profiles.Profile", on_delete=CASCADE)
+    creation_date = DateTimeField(auto_now_add=True)
+    owner = ForeignKey("profiles.Profile", on_delete=CASCADE, related_name="playlists")
     songs = ManyToManyField("music.Song", db_table="playlists_songs", related_name="playlists", blank=True)
 
     def __str__(self):

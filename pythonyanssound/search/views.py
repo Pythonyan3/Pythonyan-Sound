@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Exists, OuterRef
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -47,7 +47,9 @@ class SearchListView(APIView):
 
         playlists = Playlist.objects.filter(title__icontains=search_string)[:10]
 
-        songs = Song.objects.filter(title__icontains=search_string)[:10]
+        songs = Song.objects.annotate(
+            is_liked=Exists(request.user.liked_songs.filter(pk=OuterRef("pk"))),
+        ).filter(title__icontains=search_string)[:10]
 
         artists_serializer = ShortProfileSerializer(instance=artists, many=True, context=self.get_serializer_context())
         profile_serializer = ShortProfileSerializer(instance=profiles, many=True, context=self.get_serializer_context())
@@ -117,4 +119,6 @@ class SongsSearchView(ListAPIView):
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
-        return Song.objects.filter(title__icontains=self.kwargs.get("search_string")).order_by("title")
+        return Song.objects.annotate(
+            is_liked=Exists(self.request.user.liked_songs.filter(pk=OuterRef("pk"))),
+        ).filter(title__icontains=self.kwargs.get("search_string")).order_by("title")

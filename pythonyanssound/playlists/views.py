@@ -1,4 +1,4 @@
-from django.http import QueryDict
+from django.db.models import Exists, OuterRef
 from rest_framework import generics, status
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -60,7 +60,9 @@ class PlaylistRetrieveUpdateDeleteView(APIView):
         Returns requested playlist by playlists_id
         Allowed for all authenticated users
         """
-        playlist = Playlist.objects.get(pk=playlist_id)
+        playlist = Playlist.objects.annotate(
+            is_liked=Exists(self.request.user.liked_playlists.filter(pk=OuterRef("pk")))
+        ).get(pk=playlist_id)
         serializer = self.serializer_class(instance=playlist, context=self.get_serializer_context())
         return Response(serializer.data)
 
@@ -173,3 +175,7 @@ class LikeUnlikePlaylistView(APIView):
         playlist = Playlist.objects.get(pk=playlist_id)
         request.user.liked_playlists.remove(playlist)
         return Response(data={"message": f"{playlist} playlist successful removed from liked list."})
+
+
+class PlaylistsNewReleasesView(ListAPIView):
+    pass

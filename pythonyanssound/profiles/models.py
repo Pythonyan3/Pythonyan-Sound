@@ -1,5 +1,4 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-from django.core.validators import validate_image_file_extension
 from django.db.models import CharField, ImageField, TextField, ManyToManyField, BooleanField
 
 from pythonyanssound.validators import validate_image_resolution, validate_file_size

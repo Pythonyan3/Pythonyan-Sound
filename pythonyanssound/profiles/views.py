@@ -1,5 +1,6 @@
+from django.db.models import Exists, OuterRef
 from rest_framework import status
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,7 +10,7 @@ from rest_framework_simplejwt.views import TokenViewBase
 from pythonyanssound.pagination import CustomPageNumberPagination
 from .models import Profile
 from .serializers import ProfileSerializer, TokenRefreshSerializer, LogoutSerializer, LoginSerializer, \
-    ShortProfileSerializer
+    ShortProfileSerializer, ProfileDetailsSerializer
 from .services import register_new_profile, verify_email_address, blacklist_refresh_token, change_user_password
 from .tasks import send_verify_email_task
 from .tokens import VerifyToken
@@ -56,20 +57,23 @@ class OwnProfileShortDetailsView(APIView):
         return Response(serializer.data)
 
 
-class ProfileDetailsView(APIView):
+class ProfileDetailsView(GenericAPIView):
     """
     Processes GET method to obtain user's info
     Takes user_id as user identifier
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = ProfileDetailsSerializer
 
     def get(self, request: Request, user_id: int):
         """
         Profile details related to user with entered primary key
         user_id -- primary key
         """
-        profile = Profile.objects.get(pk=user_id, is_active=True)
-        serializer = ProfileSerializer(instance=profile)
+        profile = Profile.objects.annotate(
+            is_followed=Exists(request.user.followings.filter(pk=OuterRef("pk")))
+        ).get(pk=user_id, is_active=True)
+        serializer = self.get_serializer(instance=profile)
         return Response(serializer.data)
 
 
