@@ -1,8 +1,10 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-from django.db.models import CharField, ImageField, TextField, ManyToManyField, BooleanField
+from django.db.models import CharField, ImageField, TextField, ManyToManyField, BooleanField, Model, ForeignKey, \
+    CASCADE, DateTimeField
 
 from pythonyanssound.validators import validate_image_resolution, validate_file_size
 from .managers import ProfileManager
+from .utils import profile_photo_upload_folder
 
 
 class Profile(AbstractBaseUser, PermissionsMixin):
@@ -11,20 +13,18 @@ class Profile(AbstractBaseUser, PermissionsMixin):
     Fields 'password', 'last_login' are inherited from AbstractBaseUser
     Uses custom manager
     """
-    username = CharField(max_length=255, unique=True, error_messages={
-        "blank": "Username field cannot be empty",
-        "unique": "User with this username already exists"
-    })
-    email = CharField(max_length=255, unique=True, error_messages={
-        "blank": "Email field cannot be empty",
-        "unique": "User with this email address already exists"
-    })
-    photo = ImageField(upload_to="images", blank=True, validators=(validate_image_resolution, validate_file_size))
+    username = CharField(max_length=255, unique=True)
+    email = CharField(max_length=255, unique=True)
+    photo = ImageField(
+        blank=True,
+        validators=(validate_image_resolution, validate_file_size),
+        upload_to=profile_photo_upload_folder
+    )
     biography = TextField(blank=True)
     # set model name as string to avoid circular import
     liked_songs = ManyToManyField(
         "music.Song",
-        db_table="songs_likes",
+        through="profiles.SongLike",
         related_name="liked_profiles",
         blank=True
     )
@@ -56,3 +56,15 @@ class Profile(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+
+
+class SongLike(Model):
+
+    profile = ForeignKey("profiles.Profile", on_delete=CASCADE, related_name="liked_songs_through")
+    song = ForeignKey("music.Song", on_delete=CASCADE, related_name="liked_profiles_through")
+
+    like_date = DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "songs_likes"
+        ordering = ("-like_date",)

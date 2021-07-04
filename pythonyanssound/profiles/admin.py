@@ -2,7 +2,12 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
 from .forms import ProfileCreationForm, ProfileChangeForm
-from .models import Profile
+from .models import Profile, SongLike
+
+
+class SongLikeInline(admin.TabularInline):
+    model = SongLike
+    extra = 1
 
 
 class AdminProfile(UserAdmin):
@@ -25,7 +30,7 @@ class AdminProfile(UserAdmin):
 
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password', 'photo', 'biography', )}),
-        ("Many to many relations", {'fields': ('liked_songs', 'liked_playlists', 'followings',)}),
+        ("Many to many relations", {'fields': ('liked_playlists', 'followings',)}),
         ('Permissions', {'fields': ('is_staff', 'is_superuser', 'is_artist', 'is_verified', 'is_active', )}),
     )
     add_fieldsets = (
@@ -39,6 +44,7 @@ class AdminProfile(UserAdmin):
     ordering = ('username',)
 
     filter_horizontal = ('liked_songs', 'liked_playlists', 'followings')
+    inlines = (SongLikeInline,)
 
 
 admin.site.register(Profile, AdminProfile)

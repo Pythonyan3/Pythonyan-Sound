@@ -11,7 +11,6 @@ def custom_exception_handler(exc, context):
 
     if response is not None:
         return response
-
     elif isinstance(exc, TokenError):
         return Response(data={"detail": exc.args[0]}, status=status.HTTP_400_BAD_REQUEST)
     elif isinstance(exc, InvalidToken):
