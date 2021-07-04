@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, BooleanField, Case
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListAPIView
@@ -11,8 +11,9 @@ from rest_framework.views import APIView
 
 from music.models import Song
 from music.permissions import IsSongOwner, IsArtist
-from music.serializers import SongSerializer, SongCreateUpdateDeleteSerializer
+from music.serializers import SongSerializer, SongCreateUpdateDeleteSerializer, SongLikeSerializer
 from music.services import get_paginated_songs_list_response
+from profiles.models import SongLike
 from pythonyanssound.pagination import CustomPageNumberPagination
 
 
@@ -109,11 +110,13 @@ class LikedSongsListView(ListAPIView):
     Allowed only for authenticated users
     """
     permission_classes = [IsAuthenticated]
-    serializer_class = SongSerializer
+    serializer_class = SongLikeSerializer
     pagination_class = CustomPageNumberPagination
 
     def get_queryset(self):
-        return self.request.user.liked_songs.order_by("title")
+        return SongLike.objects.annotate(
+            is_liked=Case(default=True, output_field=BooleanField())
+        ).filter(profile=self.request.user)
 
 
 class LikeSongView(APIView):
@@ -131,8 +134,9 @@ class LikeSongView(APIView):
         Puts song to authenticated user's liked_songs (many to many relation)
         """
         song = Song.objects.get(pk=song_id)
+
         request.user.liked_songs.add(song)
-        return Response(data={"message": f"{song} song successful added to liked list."})
+        return Response(data={"message": f"Song successful added to liked list"})
 
     def delete(self, request: Request, song_id: int):
         """
@@ -140,9 +144,9 @@ class LikeSongView(APIView):
         Retrieves song by requested song_id.
         Deletes song to authenticated user's liked_songs (many to many relation)
         """
-        song = request.user.liked_songs.get(pk=song_id)
+        song = Song.objects.get(pk=song_id)
         request.user.liked_songs.remove(song)
-        return Response(data={"message": f"{song} song successful removed from liked list."})
+        return Response(data={"message": f"Song successful removed from liked list."})
 
 
 class SongsNewReleasesView(ListAPIView):
@@ -158,7 +162,7 @@ class SongsNewReleasesView(ListAPIView):
     def get_queryset(self):
         """
         Returns queryset of songs
-        Filtered by upload date (last week)
+        Filtered by creation date (last week)
         Filtered by followed profiles of current user
         Limited by 10 songs
         """
@@ -168,5 +172,5 @@ class SongsNewReleasesView(ListAPIView):
             is_liked=Exists(self.request.user.liked_songs.filter(pk=OuterRef("pk")))
         ).filter(
             is_followed_on_artist=True,
-            upload_date__gte=one_week_ago
-        ).order_by("-upload_date", "title")[:10]
+            creation_date__gte=one_week_ago
+        ).order_by("-creation_date", "title")[:10]

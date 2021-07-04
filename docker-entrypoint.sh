@@ -1,9 +1,13 @@
 #!/bin/bash
 
+# Create database migrations
+echo "Create database migrations..."
+yes | python manage.py makemigrations
+
 # Apply database migrations
 echo "Apply database migrations..."
 python manage.py migrate
 
 # Start server
 echo "Starting server..."
-python pythonyanssound/manage.py runserver 0.0.0.0:8000
+python manage.py runserver 0.0.0.0:8000

@@ -306,7 +306,7 @@ class LikedSongsListTestCase(APITestCase):
 
         response = self.client.get(reverse("songs-likes"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["results"][0]["title"], self.song.title)
+        self.assertEqual(response.data["results"][0]["song"]["title"], self.song.title)
 
     def test_liked_songs_list_bad_page(self):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(self.refresh_token.access_token)}")

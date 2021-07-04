@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from music.models import Song
-from playlists.models import Playlist
+from playlists.models import Playlist, SongInPlaylist
 from playlists.permissions import IsPlaylistOwner
 from playlists.serializers import PlaylistDetailsSerializer, ShortListPlaylistsSerializer, PlaylistCreateUpdateDeleteSerializer, \
     ListPlaylistsSerializer
@@ -119,7 +119,8 @@ class SongAddRemovePlaylistView(APIView):
         playlist = Playlist.objects.get(pk=playlist_id)
         self.check_object_permissions(request, playlist)
         song = Song.objects.get(pk=song_id)
-        playlist.songs.add(song)
+
+        SongInPlaylist.objects.create(playlist=playlist, song=song)
         return Response(data={"message": f"{song}  successful added to {playlist}."})
 
     def delete(self, request: Request, playlist_id: int, song_id: int):

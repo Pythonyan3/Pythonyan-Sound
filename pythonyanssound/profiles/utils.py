@@ -16,3 +16,7 @@ class EmailUtil:
             to=[email]
         )
         email.send()
+
+
+def profile_photo_upload_folder(profile_instance, filename: str):
+    return f"profiles/{profile_instance.pk}/photos/{filename}"
