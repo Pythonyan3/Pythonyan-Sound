@@ -12,20 +12,17 @@ services:
     restart: always
     entrypoint: ../docker-entrypoint.sh
     environment:
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
-      APP_SECRET_KEY: ${APP_SECRET_KEY}
-      EMAIL_USER: ${EMAIL_USER}
-      EMAIL_PASS: ${EMAIL_PASS}
       DB_HOST: postgres
       REDIS_HOST: redis
+    env_file:
+      - ./.env
     volumes:
       - .:/usr/src/pythonyansound
     ports:
-    - 8000:8000
-    links:
-      - redis
+    - "8000:8000"
+    depends_on:
       - postgres
+      - redis
 
   celery:
     build: .
@@ -33,37 +30,36 @@ services:
     container_name: "pythonyan-sound-celery"
     command: celery -A pythonyanssound worker -B
     environment:
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
-      APP_SECRET_KEY: ${APP_SECRET_KEY}
-      EMAIL_USER: ${EMAIL_USER}
-      EMAIL_PASS: ${EMAIL_PASS}
       DB_HOST: postgres
       REDIS_HOST: redis
+    env_file:
+      - ./.env
     volumes:
       - "celery_volume:/code"
     depends_on:
-      - pythonyansound
-    links:
-      - redis
       - postgres
+      - redis
 
 
   redis:
     image: redis:latest
-    container_name: "redis"
+    container_name: "pythonyan-sound-redis"
+    restart: always
+    ports:
+      - "6379:6379"
     volumes:
     - "redis_volume:/data"
-    restart: always
 
   postgres:
     image: postgres:12.3
     container_name: "postgresql"
+    restart: always
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: ${DB_NAME}
+    env_file:
+      - ./.env
     volumes:
     - "db_volume:/var/lib/postgresql/data"
-    restart: always
 
