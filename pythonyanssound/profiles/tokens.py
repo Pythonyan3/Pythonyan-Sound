@@ -8,18 +8,18 @@ from rest_framework_simplejwt.utils import datetime_to_epoch
 
 
 class CustomBlacklistMixin(BlacklistMixin):
-    """
-    Custom Token BlacklistMixin based on Redis.
-    """
+    """Custom Token BlacklistMixin based on Redis."""
     def verify(self, *args, **kwargs):
+        """Implementation of token verification."""
         self.check_blacklist()
-
         super().verify(*args, **kwargs)
 
     def check_blacklist(self):
         """
-        Checks if this token is present in the token blacklist.  Raises
-        `TokenError` if so.
+        Implementation of blacklist checking about token.
+
+        Checks if this token is present in the token blacklist
+        Raises TokenError if so
         """
         jti = self.payload[api_settings.JTI_CLAIM]
 
@@ -29,10 +29,12 @@ class CustomBlacklistMixin(BlacklistMixin):
 
     def blacklist(self):
         """
-        Add refresh token to blacklist
-        key -- token jti
-        value -- token
-        exp -- key's ttl, that equals to rest of token lifetime
+        Implementation of adding token to blacklist
+
+        Uses Redis to storing blacklisted tokens
+        Redis key - token jti
+        Redis value - token
+        Sets expiration equals to rest of token lifetime
         """
         jti = self.payload[api_settings.JTI_CLAIM]
         exp = int(self.payload['exp']) - datetime_to_epoch(self.current_time)
@@ -43,13 +45,12 @@ class CustomBlacklistMixin(BlacklistMixin):
 
     @classmethod
     def for_user(cls, user):
+        """Creating token for user."""
         return super().for_user(user)
 
 
 class CustomRefreshToken(CustomBlacklistMixin, Token):
-    """
-    Refresh token with custom Blacklist mixin
-    """
+    """Custom refresh token with custom Blacklist mixin."""
     token_type = 'refresh'
     lifetime = api_settings.REFRESH_TOKEN_LIFETIME
     no_copy_claims = (
@@ -62,9 +63,9 @@ class CustomRefreshToken(CustomBlacklistMixin, Token):
     @property
     def access_token(self):
         """
-        Returns an access token created from this refresh token.  Copies all
-        claims present in this refresh token to the new access token except
-        those claims listed in the `no_copy_claims` attribute.
+        Implementation of creating access token.
+
+        Creates new access token and copy allowed claims from refresh token
         """
         access = AccessToken()
 
@@ -80,9 +81,6 @@ class CustomRefreshToken(CustomBlacklistMixin, Token):
 
 
 class VerifyToken(Token):
-    """
-    Custom token to verifying user's email
-    Overrides token type
-    """
+    """JWT token with custom token type for email address verification."""
     token_type = 'verify'
     lifetime = api_settings.ACCESS_TOKEN_LIFETIME

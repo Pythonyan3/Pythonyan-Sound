@@ -6,8 +6,10 @@ class EmailUtil:
     @staticmethod
     def send_verifications_message(token: str, email: str, username: str):
         """
-        Sends email message to user to verify email address.
+        Sends verification message to Profile email.
+
         Message contains URL with token to perform email address verify
+        URL links to Frontend application
         """
         email = EmailMessage(
             subject="Email Verification",
@@ -19,4 +21,5 @@ class EmailUtil:
 
 
 def profile_photo_upload_folder(profile_instance, filename: str):
+    """Returns path to upload Profile photo."""
     return f"profiles/{profile_instance.pk}/photos/{filename}"

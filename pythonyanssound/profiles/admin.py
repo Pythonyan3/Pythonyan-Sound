@@ -12,14 +12,16 @@ class SongLikeInline(admin.TabularInline):
 
 class AdminProfile(UserAdmin):
     """
-    Profile model settings for correct displaying data in django admin
-    list_display -- list of displaying fields in Profile model main page table
-    list_filter -- list of displaying fields in filter panel (django admin)
+    Profile model settings for correct displaying data in django admin.
 
-    fieldsets -- tuple of groups of model fields displaying on Model info page
-    add_fieldsets -- tuple of groups of model fields displaying on Model Add page
-    search_fields -- tuple of fields that used in search
-    ordering -- list of fields that used in ordering
+
+    list_display - model fields displaying on main page table
+    list_filter - model fields displaying on filter panel
+
+    fieldsets - model fields displaying on record info page
+    add_fieldsets - model fields displaying on record add page
+    search_fields - model fields that used in search
+    ordering - model fields which are used in ordering
     """
     add_form = ProfileCreationForm
     form = ProfileChangeForm
